@@ -4,6 +4,10 @@ uploads/logos/*
 !uploads/passports/.gitkeep
 !uploads/logos/.gitkeep
 
+# Videos (large files)
+assets/videos/*.mp4
+!assets/videos/.gitkeep
+
 # Environment and config
 config/encryption.php
 

@@ -17,9 +17,9 @@ if (in_array($extension, $staticExtensions)) {
 
 // 라우팅
 switch (true) {
-    // 메인 페이지 - 사용자 로그인으로 리다이렉트
+    // 메인 페이지 - 인트로 화면으로 리다이렉트
     case $path === '/' || $path === '':
-        header('Location: /born/user/index.php');
+        header('Location: /born/user/intro.php');
         exit;
 
     // 관리자 페이지
@@ -61,11 +61,11 @@ switch (true) {
     // QR 코드/고유 링크로 접근
     case preg_match('/^\/e\/([A-Z0-9]+)$/i', $path, $matches):
         $uniqueCode = strtoupper($matches[1]);
-        header("Location: /born/user/index.php?code={$uniqueCode}");
+        header("Location: /born/user/intro.php?code={$uniqueCode}");
         exit;
 
-    // 기본 - 사용자 로그인으로
+    // 기본 - 인트로 화면으로
     default:
-        header('Location: /born/user/index.php');
+        header('Location: /born/user/intro.php');
         exit;
 }
