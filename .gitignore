@@ -1,0 +1,26 @@
+# Uploads
+uploads/passports/*
+uploads/logos/*
+!uploads/passports/.gitkeep
+!uploads/logos/.gitkeep
+
+# Environment and config
+config/encryption.php
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
