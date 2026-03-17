@@ -382,8 +382,12 @@ $events = $stmt->fetchAll();
                         <div class="form-group">
                             <label class="form-label">고유 링크</label>
                             <div style="display: flex; gap: 8px; align-items: center;">
+                                <?php
+                                    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                                    $fullUrl = $protocol . '://' . $_SERVER['HTTP_HOST'] . '/born/e/' . $event['unique_code'];
+                                ?>
                                 <code style="flex: 1; padding: 12px; background: var(--white); border-radius: var(--radius-sm); font-size: 13px;" id="event-link">
-                                    <?= h($_SERVER['HTTP_HOST']) ?>/e/<?= h($event['unique_code']) ?>
+                                    <?= h($fullUrl) ?>
                                 </code>
                                 <button type="button" class="btn btn-secondary btn-sm" onclick="copyEventLink()">복사</button>
                             </div>
@@ -688,9 +692,41 @@ async function deleteEvent(id) {
 function copyEventLink() {
     const link = document.getElementById('event-link');
     if (link) {
-        navigator.clipboard.writeText('https://' + link.textContent.trim());
-        BornAdmin.toast('링크가 복사되었습니다.', 'success');
+        const url = link.textContent.trim();
+
+        // navigator.clipboard API 사용 (HTTPS 환경)
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(url).then(() => {
+                BornAdmin.toast('링크가 복사되었습니다.', 'success');
+            }).catch(() => {
+                fallbackCopyText(url);
+            });
+        } else {
+            // HTTP 환경을 위한 fallback
+            fallbackCopyText(url);
+        }
     }
+}
+
+// HTTP 환경용 복사 fallback
+function fallbackCopyText(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    textArea.style.top = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        document.execCommand('copy');
+        BornAdmin.toast('링크가 복사되었습니다.', 'success');
+    } catch (err) {
+        BornAdmin.toast('복사에 실패했습니다. 직접 복사해주세요.', 'error');
+    }
+
+    document.body.removeChild(textArea);
 }
 
 // QR 코드 표시
