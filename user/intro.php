@@ -15,7 +15,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // 이미 로그인된 경우 메인으로
 if (isset($_SESSION['user_logged_in']) && $_SESSION['user_logged_in'] === true) {
-    redirect('/born/user/main.php');
+    redirect('/user/main.php');
 }
 
 // 행사 코드 확인
@@ -356,7 +356,7 @@ if ($eventCode) {
     <div class="intro-container" id="introContainer">
         <!-- 비디오 배경 -->
         <video class="video-background" id="bgVideo" autoplay muted loop playsinline>
-            <source src="/born/assets/videos/intro-bg.mp4" type="video/mp4">
+            <source src="/assets/videos/intro-bg.mp4" type="video/mp4">
         </video>
 
         <!-- 비디오 로딩 -->
@@ -369,9 +369,9 @@ if ($eventCode) {
         <div class="intro-content">
             <!-- 로고 -->
             <div class="intro-logo">
-                <img src="/born/assets/images/logo/logo.png" alt="본투어" onerror="this.style.display='none'">
+                <img src="/assets/images/logo/logo.png" alt="본투어" onerror="this.style.display='none'">
             </div>
-            <h1 class="intro-brand">BORN TOUR</h1>
+            <h1 class="intro-brand">(주)본투어인터내셔날</h1>
             <p class="intro-slogan">세계를 추억으로</p>
 
             <?php if ($event): ?>
@@ -384,7 +384,7 @@ if ($eventCode) {
 
             <!-- 로그인 버튼 -->
             <div class="intro-actions">
-                <a href="/born/user/index.php<?= $eventCode ? '?code=' . h($eventCode) : '' ?>" class="intro-login-btn" id="loginBtn">
+                <a href="/user/index.php<?= $eventCode ? '?code=' . h($eventCode) : '' ?>" class="intro-login-btn" id="loginBtn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
                         <polyline points="10 17 15 12 10 7"/>

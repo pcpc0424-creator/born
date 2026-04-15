@@ -198,28 +198,30 @@ function exportEventMembers(): void {
     $stmt->execute([$eventId]);
     $members = $stmt->fetchAll();
 
-    // CSV 형태로 출력
     header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
     header('Content-Disposition: attachment; filename="event_members_' . date('Ymd_His') . '.xls"');
     header('Pragma: no-cache');
     header('Expires: 0');
 
-    echo "\xEF\xBB\xBF"; // UTF-8 BOM
-
-    echo "한글이름\t영문이름\t연락처\t생년월일\t성별\t버스\t만찬장\t객실\n";
+    echo '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+    echo '<head><meta charset="UTF-8"><style>td,th{mso-number-format:"\@";border:1px solid #ccc;padding:4px 8px;font-size:12px;}th{background:#f0f0f0;font-weight:bold;}</style></head>';
+    echo '<body><table>';
+    echo '<tr><th>한글이름</th><th>영문이름</th><th>연락처</th><th>생년월일</th><th>성별</th><th>버스</th><th>만찬테이블</th><th>객실</th></tr>';
 
     foreach ($members as $m) {
-        echo implode("\t", [
-            $m['name_ko'],
-            $m['name_en'] ?? '',
-            $m['phone'] ? format_phone($m['phone']) : '',
-            $m['birth_date'] ?? '',
-            $m['gender'] ? GENDER_LABELS[$m['gender']] : '',
-            $m['bus_number'] ?? '',
-            $m['dinner_table'] ?? '',
-            $m['room_number'] ?? ''
-        ]) . "\n";
+        echo '<tr>';
+        echo '<td>' . htmlspecialchars($m['name_ko']) . '</td>';
+        echo '<td>' . htmlspecialchars($m['name_en'] ?? '') . '</td>';
+        echo '<td>' . ($m['phone'] ? format_phone($m['phone']) : '') . '</td>';
+        echo '<td>' . htmlspecialchars($m['birth_date'] ?? '') . '</td>';
+        echo '<td>' . ($m['gender'] ? GENDER_LABELS[$m['gender']] : '') . '</td>';
+        echo '<td>' . htmlspecialchars($m['bus_number'] ?? '') . '</td>';
+        echo '<td>' . htmlspecialchars($m['dinner_table'] ?? '') . '</td>';
+        echo '<td>' . htmlspecialchars($m['room_number'] ?? '') . '</td>';
+        echo '</tr>';
     }
+
+    echo '</table></body></html>';
     exit;
 }
 
@@ -242,28 +244,28 @@ function importEventMembers(): void {
     }
 
     $file = $_FILES['excel_file'];
-    $handle = fopen($file['tmp_name'], 'r');
-    if (!$handle) {
-        json_error('파일을 읽을 수 없습니다.');
+    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+    // 파일 파싱 (members.php의 함수 재사용)
+    require_once __DIR__ . '/members.php.inc';
+    $rows = parseUploadedFile($file['tmp_name'], $extension);
+
+    if (empty($rows)) {
+        json_error('파일에서 데이터를 읽을 수 없습니다.');
     }
 
     $db = db();
     $imported = 0;
     $errors = [];
-    $rowNum = 0;
 
-    // 헤더 스킵
-    fgetcsv($handle);
-
-    while (($row = fgetcsv($handle)) !== false) {
-        $rowNum++;
-
+    foreach ($rows as $rowNum => $row) {
         if (count($row) < 1 || empty(trim($row[0]))) {
             continue;
         }
 
-        $nameKo = trim($row[0]);
+        $nameKo = mb_substr(trim($row[0]), 0, 50);
         $birthDate = isset($row[1]) ? trim($row[1]) : null;
+        if (empty($birthDate)) $birthDate = null;
         $busNumber = isset($row[2]) ? trim($row[2]) : null;
         $dinnerTable = isset($row[3]) ? trim($row[3]) : null;
         $roomNumber = isset($row[4]) ? trim($row[4]) : null;
@@ -296,36 +298,35 @@ function importEventMembers(): void {
             }
         }
 
-        // 회원 없으면 새로 생성
-        if (!$memberId) {
-            // 로그인 아이디 생성
-            $loginId = 'user' . time() . rand(100, 999);
-            $password = password_hash($loginId, PASSWORD_DEFAULT);
+        try {
+            // 회원 없으면 새로 생성
+            if (!$memberId) {
+                $loginId = 'user' . time() . rand(100, 999);
+                $password = password_hash($loginId, PASSWORD_DEFAULT);
 
-            $stmt = $db->prepare("INSERT INTO members (login_id, password, name_ko, birth_date) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$loginId, $password, $nameKo, $birthDate]);
-            $memberId = $db->lastInsertId();
+                $stmt = $db->prepare("INSERT INTO members (login_id, password, name_ko, birth_date) VALUES (?, ?, ?, ?)");
+                $stmt->execute([$loginId, $password, $nameKo, $birthDate ?: null]);
+                $memberId = $db->lastInsertId();
+            }
+
+            // 행사-회원 매칭 (중복 체크)
+            $stmt = $db->prepare("SELECT id FROM event_members WHERE event_id = ? AND member_id = ?");
+            $stmt->execute([$eventId, $memberId]);
+            $existing = $stmt->fetch();
+
+            if ($existing) {
+                $stmt = $db->prepare("UPDATE event_members SET bus_number = ?, dinner_table = ?, room_number = ? WHERE id = ?");
+                $stmt->execute([$busNumber, $dinnerTable, $roomNumber, $existing['id']]);
+            } else {
+                $stmt = $db->prepare("INSERT INTO event_members (event_id, member_id, bus_number, dinner_table, room_number) VALUES (?, ?, ?, ?, ?)");
+                $stmt->execute([$eventId, $memberId, $busNumber, $dinnerTable, $roomNumber]);
+            }
+
+            $imported++;
+        } catch (Exception $e) {
+            $errors[] = "행 {$rowNum}: {$nameKo} - 등록 실패";
         }
-
-        // 행사-회원 매칭 (중복 체크)
-        $stmt = $db->prepare("SELECT id FROM event_members WHERE event_id = ? AND member_id = ?");
-        $stmt->execute([$eventId, $memberId]);
-        $existing = $stmt->fetch();
-
-        if ($existing) {
-            // 기존 데이터 업데이트
-            $stmt = $db->prepare("UPDATE event_members SET bus_number = ?, dinner_table = ?, room_number = ? WHERE id = ?");
-            $stmt->execute([$busNumber, $dinnerTable, $roomNumber, $existing['id']]);
-        } else {
-            // 새로 추가
-            $stmt = $db->prepare("INSERT INTO event_members (event_id, member_id, bus_number, dinner_table, room_number) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$eventId, $memberId, $busNumber, $dinnerTable, $roomNumber]);
-        }
-
-        $imported++;
     }
-
-    fclose($handle);
 
     json_success([
         'imported' => $imported,

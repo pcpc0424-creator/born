@@ -10,7 +10,7 @@ $user = get_logged_in_user();
 $visibility = get_page_visibility($user['event_id']);
 
 if (!$visibility['optional_tour']) {
-    redirect('/born/user/main.php');
+    redirect('/user/main.php');
 }
 
 $db = db();
@@ -32,8 +32,8 @@ if ($eventMember && $eventMember['optional_tour_ids']) {
 }
 
 // 선택관광 목록
-$stmt = $db->prepare("SELECT * FROM optional_tours WHERE status = 'active' ORDER BY id");
-$stmt->execute();
+$stmt = $db->prepare("SELECT * FROM optional_tours WHERE event_id = ? AND status = 'active' ORDER BY id");
+$stmt->execute([$user['event_id']]);
 $tours = $stmt->fetchAll();
 
 $pageTitle = '선택관광 신청';
@@ -46,9 +46,9 @@ $pageTitle = '선택관광 신청';
     <meta name="theme-color" content="#6dc5d1">
     <title><?= $pageTitle ?> - 본투어</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css">
-    <link rel="stylesheet" href="/born/assets/css/animations.css">
-    <link rel="stylesheet" href="/born/assets/css/user.css">
-    <link rel="stylesheet" href="/born/assets/css/user-pc.css">
+    <link rel="stylesheet" href="/assets/css/animations.css">
+    <link rel="stylesheet" href="/assets/css/user.css">
+    <link rel="stylesheet" href="/assets/css/user-pc.css">
     <style>
         .tour-preview-btn {
             display: inline-flex;
@@ -355,7 +355,7 @@ $pageTitle = '선택관광 신청';
         </div>
     </div>
 
-    <script src="/born/assets/js/user.js"></script>
+    <script src="/assets/js/user.js"></script>
     <script>
         // 투어 데이터
         const toursData = JSON.parse(document.getElementById('toursData')?.textContent || '[]');
@@ -392,7 +392,7 @@ $pageTitle = '선택관광 신청';
                         tourIds.push(parseInt(cb.value));
                     });
 
-                    const response = await fetch('/born/api/optional-tours.php', {
+                    const response = await fetch('/api/optional-tours.php', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -433,7 +433,7 @@ $pageTitle = '선택관광 신청';
             formData.getAll('tour_ids[]').forEach(id => tourIds.push(parseInt(id)));
 
             try {
-                const response = await fetch('/born/api/optional-tours.php', {
+                const response = await fetch('/api/optional-tours.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

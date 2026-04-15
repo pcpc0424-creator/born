@@ -75,7 +75,7 @@ if ($event) {
                         <thead>
                             <tr>
                                 <th>선택관광명</th>
-                                <th>행사일</th>
+                                <th>진행 일차</th>
                                 <th>금액</th>
                                 <th>소요시간</th>
                                 <th>미팅시간</th>
@@ -96,11 +96,20 @@ if ($event) {
                                     </td>
                                     <td style="font-size: 12px;">
                                         <?php
-                                        $tourDates = !empty($tour['tour_dates']) ? json_decode($tour['tour_dates'], true) : [];
-                                        if (!empty($tourDates)) {
-                                            foreach ($tourDates as $td) {
-                                                echo date('m.d', strtotime($td)) . '<br>';
+                                        $tourDays = !empty($tour['tour_dates']) ? json_decode($tour['tour_dates'], true) : [];
+                                        if (!empty($tourDays)) {
+                                            $startDt = new DateTime($event['start_date']);
+                                            $dayLabels = [];
+                                            foreach ($tourDays as $td) {
+                                                if (is_numeric($td)) {
+                                                    $dayDt = clone $startDt;
+                                                    $dayDt->modify('+' . ((int)$td - 1) . ' days');
+                                                    $dayLabels[] = $td . '일차<small style="color:var(--gray-400)">(' . $dayDt->format('m.d') . ')</small>';
+                                                } else {
+                                                    $dayLabels[] = date('m.d', strtotime($td));
+                                                }
                                             }
+                                            echo implode('<br>', $dayLabels);
                                         } else {
                                             echo '-';
                                         }
@@ -186,20 +195,26 @@ if ($event) {
 
                 <div class="form-group">
                     <label class="form-label">
-                        행사 시작일
+                        진행 일차
                         <small style="color: var(--gray-500); font-weight: normal;">(선택관광 진행일)</small>
                     </label>
-                    <div id="tour-dates-container">
-                        <!-- 동적으로 추가됨 -->
+                    <div id="tour-days-container" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <?php if ($event):
+                            $startDt = new DateTime($event['start_date']);
+                            $endDt = new DateTime($event['end_date']);
+                            $days = (int)$startDt->diff($endDt)->days + 1;
+                            for ($d = 1; $d <= $days; $d++):
+                                $dayDt = clone $startDt;
+                                $dayDt->modify('+' . ($d - 1) . ' days');
+                        ?>
+                            <label style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: var(--gray-100); border-radius: var(--radius-md); cursor: pointer; font-size: 13px; transition: all 0.2s;">
+                                <input type="checkbox" name="tour_day_checks[]" value="<?= $d ?>" style="accent-color: var(--primary-600);">
+                                <span><?= $d ?>일차</span>
+                                <small style="color: var(--gray-500);">(<?= $dayDt->format('m.d') ?>)</small>
+                            </label>
+                        <?php endfor; endif; ?>
                     </div>
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="addTourDate()">
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"/>
-                            <line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                        행사일 추가
-                    </button>
-                    <span class="form-hint">선택관광이 진행되는 날짜를 지정하세요. (여러 날짜 지정 가능)</span>
+                    <span class="form-hint">선택관광이 진행되는 일차를 선택하세요. (복수 선택 가능)</span>
                 </div>
 
                 <div class="form-group">
@@ -233,7 +248,7 @@ const eventId = <?= $eventId ?: 'null' ?>;
 
 function changeEvent(id) {
     if (id) {
-        window.location.href = `/born/admin/optional-tour.php?event_id=${id}`;
+        window.location.href = `/admin/optional-tour.php?event_id=${id}`;
     }
 }
 
@@ -241,34 +256,25 @@ function openTourModal() {
     document.getElementById('tour-modal-title').textContent = '선택관광 추가';
     document.getElementById('tour-form').reset();
     document.getElementById('tour-id').value = '';
-    document.getElementById('tour-dates-container').innerHTML = '';
+    // 체크박스 모두 해제
+    document.querySelectorAll('input[name="tour_day_checks[]"]').forEach(cb => cb.checked = false);
     BornAdmin.openModal('tour-modal');
 }
 
-// 행사일 추가
-function addTourDate(dateValue = '') {
-    const container = document.getElementById('tour-dates-container');
-    const row = document.createElement('div');
-    row.style.cssText = 'display: flex; gap: 8px; margin-bottom: 8px;';
-    row.innerHTML = `
-        <input type="date" name="tour_dates[]" class="form-input" value="${dateValue}" style="flex: 1;">
-        <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">삭제</button>
-    `;
-    container.appendChild(row);
-}
-
-// 행사일 로드
-function loadTourDates(dates) {
-    const container = document.getElementById('tour-dates-container');
-    container.innerHTML = '';
-    if (dates && Array.isArray(dates)) {
-        dates.forEach(date => addTourDate(date));
+// 일차 체크박스 로드
+function loadTourDays(days) {
+    document.querySelectorAll('input[name="tour_day_checks[]"]').forEach(cb => cb.checked = false);
+    if (days && Array.isArray(days)) {
+        days.forEach(d => {
+            const cb = document.querySelector(`input[name="tour_day_checks[]"][value="${d}"]`);
+            if (cb) cb.checked = true;
+        });
     }
 }
 
 async function editTour(id) {
     try {
-        const response = await BornAdmin.api(`/born/api/optional-tours.php?action=get&id=${id}`);
+        const response = await BornAdmin.api(`/api/optional-tours.php?action=get&id=${id}`);
         const tour = response.data;
 
         document.getElementById('tour-modal-title').textContent = '선택관광 수정';
@@ -281,9 +287,9 @@ async function editTour(id) {
         document.getElementById('tour-notice').value = tour.notice || '';
         document.getElementById('tour-status').value = tour.status;
 
-        // 행사일 로드
-        const tourDates = tour.tour_dates ? JSON.parse(tour.tour_dates) : [];
-        loadTourDates(tourDates);
+        // 일차 로드
+        const tourDays = tour.tour_dates ? JSON.parse(tour.tour_dates) : [];
+        loadTourDays(tourDays);
 
         BornAdmin.openModal('tour-modal');
     } catch (error) {
@@ -297,13 +303,13 @@ async function saveTour(e) {
     const data = Object.fromEntries(formData.entries());
     data.action = data.id ? 'update' : 'create';
 
-    // tour_dates 배열 수집
-    const tourDates = formData.getAll('tour_dates[]').filter(d => d);
-    data.tour_dates = tourDates;
-    delete data['tour_dates[]'];
+    // 일차 체크박스 수집
+    const tourDays = formData.getAll('tour_day_checks[]').filter(d => d);
+    data.tour_dates = tourDays;
+    delete data['tour_day_checks[]'];
 
     try {
-        await BornAdmin.api('/born/api/optional-tours.php', {
+        await BornAdmin.api('/api/optional-tours.php', {
             method: 'POST',
             body: data
         });
@@ -319,7 +325,7 @@ async function deleteTour(id) {
     if (!await BornAdmin.confirmDelete('이 선택관광')) return;
 
     try {
-        await BornAdmin.api('/born/api/optional-tours.php', {
+        await BornAdmin.api('/api/optional-tours.php', {
             method: 'POST',
             body: { action: 'delete', id: id }
         });

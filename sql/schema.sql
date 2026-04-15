@@ -59,9 +59,13 @@ CREATE TABLE IF NOT EXISTS events (
     flight_departure VARCHAR(50),
     flight_return VARCHAR(50),
     flight_time_departure TIME,
+    flight_time_departure_arrival TIME,
     flight_time_return TIME,
+    flight_time_return_arrival TIME,
     departure_airport VARCHAR(100) DEFAULT '인천국제공항',
+    departure_airport_code VARCHAR(10) DEFAULT 'ICN',
     arrival_airport VARCHAR(100),
+    arrival_airport_code VARCHAR(10) DEFAULT '',
     baggage_info TEXT,
     flight_etc TEXT,
     client_logo VARCHAR(255),
@@ -72,7 +76,10 @@ CREATE TABLE IF NOT EXISTS events (
     meeting_date DATE,
     meeting_manager VARCHAR(50),
     manager_phone VARCHAR(20),
+    meeting_notice TEXT,
     travel_notice TEXT,
+    departure_checklist TEXT,
+    prohibited_items TEXT,
     weather_image VARCHAR(255),
     unique_code VARCHAR(50) UNIQUE,
     qr_code VARCHAR(255),
@@ -82,6 +89,35 @@ CREATE TABLE IF NOT EXISTS events (
     INDEX idx_dates (start_date, end_date),
     INDEX idx_status (status),
     INDEX idx_unique_code (unique_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 일정표 (일차별)
+CREATE TABLE IF NOT EXISTS schedule_days (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    event_id INT NOT NULL,
+    day_number INT NOT NULL,
+    location VARCHAR(200),
+    hotel_name VARCHAR(200),
+    hotel_id INT DEFAULT NULL,
+    meal_breakfast VARCHAR(100),
+    meal_lunch VARCHAR(100),
+    meal_dinner VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_event_day (event_id, day_number),
+    INDEX idx_event_id (event_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 일정표 세부 항목
+CREATE TABLE IF NOT EXISTS schedule_items (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    schedule_day_id INT NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    sort_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (schedule_day_id) REFERENCES schedule_days(id) ON DELETE CASCADE,
+    INDEX idx_day_id (schedule_day_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 행사-회원 매칭

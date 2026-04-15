@@ -10,7 +10,7 @@ $user = get_logged_in_user();
 $visibility = get_page_visibility($user['event_id']);
 
 if (!$visibility['flight']) {
-    redirect('/born/user/main.php');
+    redirect('/user/main.php');
 }
 
 $db = db();
@@ -29,9 +29,11 @@ function calculateArrivalTime($departureTime, $flightDuration, $timezoneOffset) 
     return $departure->format('H:i');
 }
 
-// 출국편 현지 도착 시간
+// 출국편 현지 도착 시간 (직접 입력값 우선, 없으면 계산)
 $departureArrivalTime = null;
-if ($event['flight_time_departure'] && $event['flight_duration_departure']) {
+if ($event['flight_time_departure_arrival']) {
+    $departureArrivalTime = date('H:i', strtotime($event['flight_time_departure_arrival']));
+} elseif ($event['flight_time_departure'] && $event['flight_duration_departure']) {
     $departureArrivalTime = calculateArrivalTime(
         $event['flight_time_departure'],
         $event['flight_duration_departure'],
@@ -39,10 +41,11 @@ if ($event['flight_time_departure'] && $event['flight_duration_departure']) {
     );
 }
 
-// 귀국편 한국 도착 시간
+// 귀국편 한국 도착 시간 (직접 입력값 우선, 없으면 계산)
 $returnArrivalTime = null;
-if ($event['flight_time_return'] && $event['flight_duration_return']) {
-    // 귀국 시 시차는 반대로 적용 (현지→한국)
+if ($event['flight_time_return_arrival']) {
+    $returnArrivalTime = date('H:i', strtotime($event['flight_time_return_arrival']));
+} elseif ($event['flight_time_return'] && $event['flight_duration_return']) {
     $returnArrivalTime = calculateArrivalTime(
         $event['flight_time_return'],
         $event['flight_duration_return'],
@@ -60,9 +63,9 @@ $pageTitle = '항공 스케줄';
     <meta name="theme-color" content="#6dc5d1">
     <title><?= $pageTitle ?> - 본투어</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css">
-    <link rel="stylesheet" href="/born/assets/css/animations.css">
-    <link rel="stylesheet" href="/born/assets/css/user.css">
-    <link rel="stylesheet" href="/born/assets/css/user-pc.css">
+    <link rel="stylesheet" href="/assets/css/animations.css">
+    <link rel="stylesheet" href="/assets/css/user.css">
+    <link rel="stylesheet" href="/assets/css/user-pc.css">
 </head>
 <body>
     <div class="phone-frame">
@@ -100,7 +103,7 @@ $pageTitle = '항공 스케줄';
 
                             <div class="flight-route">
                                 <div class="flight-city">
-                                    <div class="code">ICN</div>
+                                    <div class="code"><?= h($event['departure_airport_code'] ?: 'ICN') ?></div>
                                     <div class="name"><?= h($event['departure_airport'] ?: '인천') ?></div>
                                 </div>
                                 <div class="flight-line">
@@ -113,7 +116,7 @@ $pageTitle = '항공 스케줄';
                                     <div class="line"></div>
                                 </div>
                                 <div class="flight-city">
-                                    <div class="code"><?= h(mb_substr($event['arrival_airport'] ?: '도착지', 0, 3)) ?></div>
+                                    <div class="code"><?= h($event['arrival_airport_code'] ?: '-') ?></div>
                                     <div class="name"><?= h($event['arrival_airport'] ?: '-') ?></div>
                                 </div>
                             </div>
@@ -135,7 +138,7 @@ $pageTitle = '항공 스케줄';
                                 <?php endif; ?>
                                 <div class="flight-detail-item">
                                     <label>출발일</label>
-                                    <span><?= format_date_kr($event['start_date']) ?></span>
+                                    <span><?= preg_replace('/(년)\s/', '$1<br>', format_date_kr($event['start_date'])) ?></span>
                                 </div>
                                 <?php if ($event['flight_duration_departure']): ?>
                                 <div class="flight-detail-item">
@@ -160,7 +163,7 @@ $pageTitle = '항공 스케줄';
 
                             <div class="flight-route">
                                 <div class="flight-city">
-                                    <div class="code"><?= h(mb_substr($event['arrival_airport'] ?: '출발지', 0, 3)) ?></div>
+                                    <div class="code"><?= h($event['arrival_airport_code'] ?: '-') ?></div>
                                     <div class="name"><?= h($event['arrival_airport'] ?: '-') ?></div>
                                 </div>
                                 <div class="flight-line">
@@ -173,7 +176,7 @@ $pageTitle = '항공 스케줄';
                                     <div class="line"></div>
                                 </div>
                                 <div class="flight-city">
-                                    <div class="code">ICN</div>
+                                    <div class="code"><?= h($event['departure_airport_code'] ?: 'ICN') ?></div>
                                     <div class="name"><?= h($event['departure_airport'] ?: '인천') ?></div>
                                 </div>
                             </div>
@@ -195,7 +198,7 @@ $pageTitle = '항공 스케줄';
                                 <?php endif; ?>
                                 <div class="flight-detail-item">
                                     <label>귀국일</label>
-                                    <span><?= format_date_kr($event['end_date']) ?></span>
+                                    <span><?= preg_replace('/(년)\s/', '$1<br>', format_date_kr($event['end_date'])) ?></span>
                                 </div>
                                 <?php if ($event['flight_duration_return']): ?>
                                 <div class="flight-detail-item">
@@ -241,6 +244,6 @@ $pageTitle = '항공 스케줄';
         </div>
     </div>
 
-    <script src="/born/assets/js/user.js"></script>
+    <script src="/assets/js/user.js"></script>
 </body>
 </html>

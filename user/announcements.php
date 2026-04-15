@@ -10,14 +10,14 @@ $user = get_logged_in_user();
 $visibility = get_page_visibility($user['event_id']);
 
 if (!$visibility['announcements']) {
-    redirect('/born/user/main.php');
+    redirect('/user/main.php');
 }
 
 $db = db();
 
 // 공지사항 조회
-$stmt = $db->prepare("SELECT * FROM notices WHERE category = 'notice' ORDER BY sort_order ASC, created_at DESC");
-$stmt->execute();
+$stmt = $db->prepare("SELECT * FROM notices WHERE category = 'notice' AND event_id = ? ORDER BY sort_order ASC, created_at DESC");
+$stmt->execute([$user['event_id']]);
 $notices = $stmt->fetchAll();
 
 $pageTitle = '공지사항';
@@ -30,9 +30,9 @@ $pageTitle = '공지사항';
     <meta name="theme-color" content="#6dc5d1">
     <title><?= $pageTitle ?> - 본투어</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css">
-    <link rel="stylesheet" href="/born/assets/css/animations.css">
-    <link rel="stylesheet" href="/born/assets/css/user.css">
-    <link rel="stylesheet" href="/born/assets/css/user-pc.css">
+    <link rel="stylesheet" href="/assets/css/animations.css">
+    <link rel="stylesheet" href="/assets/css/user.css">
+    <link rel="stylesheet" href="/assets/css/user-pc.css">
 </head>
 <body>
     <div class="phone-frame">
@@ -102,7 +102,7 @@ $pageTitle = '공지사항';
         </div>
     </div>
 
-    <script src="/born/assets/js/user.js"></script>
+    <script src="/assets/js/user.js"></script>
     <script>
     document.querySelectorAll('.accordion-header').forEach(btn => {
         btn.addEventListener('click', function(e) {

@@ -56,7 +56,7 @@ function handleAdminLogin(): void {
     $result = admin_login($username, $password);
 
     if ($result['success']) {
-        json_success(['redirect' => '/born/admin/index.php'], '로그인되었습니다.');
+        json_success(['redirect' => '/admin/index.php'], '로그인되었습니다.');
     } else {
         json_error($result['error']);
     }
@@ -69,9 +69,9 @@ function handleAdminLogout(): void {
     admin_logout();
 
     if (is_ajax()) {
-        json_success(['redirect' => '/born/admin/login.php'], '로그아웃되었습니다.');
+        json_success(['redirect' => '/admin/login.php'], '로그아웃되었습니다.');
     } else {
-        redirect('/born/admin/login.php');
+        redirect('/admin/login.php');
     }
 }
 
@@ -93,7 +93,7 @@ function handleUserLogin(): void {
     $result = user_login($loginId, $password);
 
     if ($result['success']) {
-        json_success(['redirect' => '/born/user/main.php'], '로그인되었습니다.');
+        json_success(['redirect' => '/user/main.php'], '로그인되었습니다.');
     } else {
         json_error($result['error']);
     }
@@ -106,9 +106,9 @@ function handleUserLogout(): void {
     user_logout();
 
     if (is_ajax()) {
-        json_success(['redirect' => '/born/user/index.php'], '로그아웃되었습니다.');
+        json_success(['redirect' => '/user/index.php'], '로그아웃되었습니다.');
     } else {
-        redirect('/born/user/index.php');
+        redirect('/user/index.php');
     }
 }
 

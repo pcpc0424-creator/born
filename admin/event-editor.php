@@ -172,12 +172,14 @@ $events = $stmt->fetchAll();
 
                     <div class="form-group">
                         <label class="form-label">거래처 로고</label>
-                        <input type="file" name="client_logo" id="event-logo" class="form-input" accept="image/*">
-                        <?php if (!empty($event['client_logo'])): ?>
-                            <div style="margin-top: 8px;">
-                                <img src="/born/uploads/logos/<?= h($event['client_logo']) ?>" alt="" style="max-height: 40px;">
-                            </div>
-                        <?php endif; ?>
+                        <input type="file" name="client_logo" id="event-logo" class="form-input" accept="image/*" onchange="previewLogo(this)">
+                        <div id="logo-preview" style="margin-top: 8px; <?= empty($event['client_logo']) ? 'display:none;' : '' ?>">
+                            <?php if (!empty($event['client_logo'])): ?>
+                                <img id="logo-preview-img" src="/uploads/logos/<?= h($event['client_logo']) ?>" alt="" style="max-height: 40px; border: 1px solid var(--gray-200); border-radius: 4px; padding: 4px;">
+                            <?php else: ?>
+                                <img id="logo-preview-img" src="" alt="" style="max-height: 40px; border: 1px solid var(--gray-200); border-radius: 4px; padding: 4px;">
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
 
@@ -204,29 +206,59 @@ $events = $stmt->fetchAll();
                         </div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                        <div class="form-group">
-                            <label class="form-label">출발 시간</label>
-                            <input type="time" name="flight_time_departure" id="event-time-dep" class="form-input"
-                                   value="<?= $event['flight_time_departure'] ?? '' ?>">
+                    <div style="background: var(--white); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 12px; border: 1px solid var(--gray-200);">
+                        <div style="font-size: 12px; font-weight: 600; color: var(--gray-500); margin-bottom: 8px;">출국편 시간</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">출발 시간</label>
+                                <input type="time" name="flight_time_departure" id="event-time-dep" class="form-input"
+                                       value="<?= $event['flight_time_departure'] ?? '' ?>">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">도착 시간 <small style="color:var(--gray-400)">(현지)</small></label>
+                                <input type="time" name="flight_time_departure_arrival" id="event-time-dep-arr" class="form-input"
+                                       value="<?= $event['flight_time_departure_arrival'] ?? '' ?>">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">도착 시간</label>
-                            <input type="time" name="flight_time_return" id="event-time-ret" class="form-input"
-                                   value="<?= $event['flight_time_return'] ?? '' ?>">
+                    </div>
+                    <div style="background: var(--white); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 12px; border: 1px solid var(--gray-200);">
+                        <div style="font-size: 12px; font-weight: 600; color: var(--gray-500); margin-bottom: 8px;">귀국편 시간</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">출발 시간 <small style="color:var(--gray-400)">(현지)</small></label>
+                                <input type="time" name="flight_time_return" id="event-time-ret" class="form-input"
+                                       value="<?= $event['flight_time_return'] ?? '' ?>">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label">도착 시간 <small style="color:var(--gray-400)">(한국)</small></label>
+                                <input type="time" name="flight_time_return_arrival" id="event-time-ret-arr" class="form-input"
+                                       value="<?= $event['flight_time_return_arrival'] ?? '' ?>">
+                            </div>
                         </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                         <div class="form-group">
                             <label class="form-label">출발 공항</label>
-                            <input type="text" name="departure_airport" id="event-airport-dep" class="form-input"
-                                   value="<?= h($event['departure_airport'] ?? '인천국제공항') ?>">
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" name="departure_airport_code" id="event-airport-dep-code" class="form-input"
+                                       value="<?= h($event['departure_airport_code'] ?? 'ICN') ?>" placeholder="ICN"
+                                       maxlength="4" style="width: 80px; text-transform: uppercase; text-align: center; font-weight: 600;">
+                                <input type="text" name="departure_airport" id="event-airport-dep" class="form-input"
+                                       value="<?= h($event['departure_airport'] ?? '인천국제공항') ?>" placeholder="인천국제공항" style="flex: 1;">
+                            </div>
+                            <span class="form-hint">공항 코드(IATA) + 공항명</span>
                         </div>
                         <div class="form-group">
                             <label class="form-label">도착 공항</label>
-                            <input type="text" name="arrival_airport" id="event-airport-arr" class="form-input"
-                                   value="<?= h($event['arrival_airport'] ?? '') ?>">
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" name="arrival_airport_code" id="event-airport-arr-code" class="form-input"
+                                       value="<?= h($event['arrival_airport_code'] ?? '') ?>" placeholder="NRT"
+                                       maxlength="4" style="width: 80px; text-transform: uppercase; text-align: center; font-weight: 600;">
+                                <input type="text" name="arrival_airport" id="event-airport-arr" class="form-input"
+                                       value="<?= h($event['arrival_airport'] ?? '') ?>" placeholder="나리타국제공항" style="flex: 1;">
+                            </div>
+                            <span class="form-hint">공항 코드(IATA) + 공항명</span>
                         </div>
                     </div>
 
@@ -328,22 +360,23 @@ $events = $stmt->fetchAll();
                                    value="<?= h($event['manager_phone'] ?? '') ?>" placeholder="010-0000-0000">
                         </div>
                     </div>
-                </div>
-
-                <!-- 외부 링크 -->
-                <div style="background: var(--gray-50); padding: 20px; border-radius: var(--radius-md); margin-bottom: 24px;">
-                    <h4 style="font-size: 14px; font-weight: 600; color: var(--primary-700); margin-bottom: 16px;">외부 링크</h4>
 
                     <div class="form-group">
-                        <label class="form-label">행사 일정 URL</label>
-                        <input type="url" name="schedule_url" id="event-schedule-url" class="form-input"
-                               value="<?= h($event['schedule_url'] ?? '') ?>" placeholder="https://...">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">호텔 정보 URL</label>
-                        <input type="url" name="hotel_url" id="event-hotel-url" class="form-input"
-                               value="<?= h($event['hotel_url'] ?? '') ?>" placeholder="https://...">
+                        <label class="form-label">미팅 안내사항</label>
+                        <div class="expandable-textarea-wrapper" onclick="openTextModal('event-meeting-notice', '미팅 안내사항', 500)">
+                            <textarea name="meeting_notice" id="event-meeting-notice" class="form-textarea expandable-textarea" rows="3"
+                                      maxlength="500" placeholder="클릭하여 내용 입력 (최대 500자)&#10;예: 미팅 시간 10분 전까지 도착해 주세요.&#10;여권과 항공권을 반드시 지참해 주세요." readonly><?= h($event['meeting_notice'] ?? '') ?></textarea>
+                            <div class="expand-hint">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="15 3 21 3 21 9"/>
+                                    <polyline points="9 21 3 21 3 15"/>
+                                    <line x1="21" y1="3" x2="14" y2="10"/>
+                                    <line x1="3" y1="21" x2="10" y2="14"/>
+                                </svg>
+                                최대 500자
+                            </div>
+                        </div>
+                        <span class="form-hint">줄바꿈으로 항목을 구분하면 목록으로 표시됩니다</span>
                     </div>
                 </div>
 
@@ -369,11 +402,47 @@ $events = $stmt->fetchAll();
                     </div>
 
                     <div class="form-group">
+                        <label class="form-label">출국 준비물</label>
+                        <div class="expandable-textarea-wrapper" onclick="openTextModal('event-departure-checklist', '출국 준비물', 500)">
+                            <textarea name="departure_checklist" id="event-departure-checklist" class="form-textarea expandable-textarea" rows="3"
+                                      maxlength="500" placeholder="클릭하여 내용 입력 (최대 500자)&#10;줄바꿈으로 항목 구분&#10;예: 여권 (유효기간 6개월 이상)" readonly><?= h($event['departure_checklist'] ?? '') ?></textarea>
+                            <div class="expand-hint">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="15 3 21 3 21 9"/>
+                                    <polyline points="9 21 3 21 3 15"/>
+                                    <line x1="21" y1="3" x2="14" y2="10"/>
+                                    <line x1="3" y1="21" x2="10" y2="14"/>
+                                </svg>
+                                최대 500자
+                            </div>
+                        </div>
+                        <span class="form-hint">줄바꿈으로 항목을 구분하면 체크리스트로 표시됩니다. 비우면 기본 항목이 표시됩니다.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">기내 반입 금지 물품</label>
+                        <div class="expandable-textarea-wrapper" onclick="openTextModal('event-prohibited-items', '기내 반입 금지 물품', 500)">
+                            <textarea name="prohibited_items" id="event-prohibited-items" class="form-textarea expandable-textarea" rows="3"
+                                      maxlength="500" placeholder="클릭하여 내용 입력 (최대 500자)&#10;줄바꿈으로 항목 구분&#10;예: 액체류 100ml 초과 (기내 반입 불가)" readonly><?= h($event['prohibited_items'] ?? '') ?></textarea>
+                            <div class="expand-hint">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="15 3 21 3 21 9"/>
+                                    <polyline points="9 21 3 21 3 15"/>
+                                    <line x1="21" y1="3" x2="14" y2="10"/>
+                                    <line x1="3" y1="21" x2="10" y2="14"/>
+                                </svg>
+                                최대 500자
+                            </div>
+                        </div>
+                        <span class="form-hint">줄바꿈으로 항목을 구분합니다. 비우면 기본 항목이 표시됩니다.</span>
+                    </div>
+
+                    <div class="form-group">
                         <label class="form-label">날씨 이미지</label>
                         <input type="file" name="weather_image" id="event-weather" class="form-input" accept="image/*">
                         <?php if (!empty($event['weather_image'])): ?>
                             <div style="margin-top: 8px;">
-                                <img src="/born/uploads/weather/<?= h($event['weather_image']) ?>" alt="" style="max-width: 200px; border-radius: 8px;">
+                                <img src="/uploads/weather/<?= h($event['weather_image']) ?>" alt="" style="max-width: 200px; border-radius: 8px;">
                             </div>
                         <?php endif; ?>
                     </div>
@@ -384,7 +453,7 @@ $events = $stmt->fetchAll();
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <?php
                                     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-                                    $fullUrl = $protocol . '://' . $_SERVER['HTTP_HOST'] . '/born/e/' . $event['unique_code'];
+                                    $fullUrl = $protocol . '://' . $_SERVER['HTTP_HOST'] . '/e/' . $event['unique_code'];
                                 ?>
                                 <code style="flex: 1; padding: 12px; background: var(--white); border-radius: var(--radius-sm); font-size: 13px;" id="event-link">
                                     <?= h($fullUrl) ?>
@@ -634,15 +703,26 @@ document.getElementById('event-search').addEventListener('input', function(e) {
 
 // 새 행사
 function newEvent() {
-    window.location.href = '/born/admin/event-editor.php';
+    window.location.href = '/admin/event-editor.php';
 }
 
 // 행사 불러오기
 function loadEvent(id) {
-    window.location.href = `/born/admin/event-editor.php?id=${id}`;
+    window.location.href = `/admin/event-editor.php?id=${id}`;
 }
 
 // 행사 저장
+function previewLogo(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('logo-preview-img').src = e.target.result;
+            document.getElementById('logo-preview').style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
 async function saveEvent(e) {
     e.preventDefault();
 
@@ -652,7 +732,7 @@ async function saveEvent(e) {
 
     try {
         BornAdmin.showLoading('#save-btn');
-        const response = await BornAdmin.api('/born/api/events.php', {
+        const response = await BornAdmin.api('/api/events.php', {
             method: 'POST',
             body: formData
         });
@@ -660,7 +740,7 @@ async function saveEvent(e) {
         BornAdmin.toast('저장되었습니다.', 'success');
 
         if (!formData.get('id') && response.data.id) {
-            window.location.href = `/born/admin/event-editor.php?id=${response.data.id}`;
+            window.location.href = `/admin/event-editor.php?id=${response.data.id}`;
         } else {
             setTimeout(() => location.reload(), 500);
         }
@@ -676,13 +756,13 @@ async function deleteEvent(id) {
     if (!await BornAdmin.confirmDelete('이 행사')) return;
 
     try {
-        await BornAdmin.api('/born/api/events.php', {
+        await BornAdmin.api('/api/events.php', {
             method: 'POST',
             body: { action: 'delete', id: id }
         });
 
         BornAdmin.toast('삭제되었습니다.', 'success');
-        window.location.href = '/born/admin/event-editor.php';
+        window.location.href = '/admin/event-editor.php';
     } catch (error) {
         BornAdmin.toast(error.message, 'error');
     }

@@ -49,7 +49,7 @@ foreach ($questions as $q) {
 <div class="card">
     <div class="card-header">
         <h3 class="card-title">여행 후기 설문 에디터</h3>
-        <a href="/born/admin/" class="btn btn-sm btn-ghost btn-icon" title="메인으로">
+        <a href="/admin/" class="btn btn-sm btn-ghost btn-icon" title="메인으로">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                 <polyline points="9 22 9 12 15 12 15 22"/>
@@ -71,7 +71,7 @@ foreach ($questions as $q) {
                 </select>
             </div>
             <?php if ($survey): ?>
-                <a href="/born/admin/survey-stats.php?id=<?= $surveyId ?>" class="btn btn-secondary">통계 보기</a>
+                <a href="/admin/survey-stats.php?id=<?= $surveyId ?>" class="btn btn-secondary">통계 보기</a>
             <?php endif; ?>
         </div>
 
@@ -263,9 +263,9 @@ const surveyId = <?= $surveyId ?: 'null' ?>;
 
 function changeSurvey(id) {
     if (id) {
-        location.href = `/born/admin/survey-editor.php?id=${id}`;
+        location.href = `/admin/survey-editor.php?id=${id}`;
     } else {
-        location.href = '/born/admin/survey-editor.php';
+        location.href = '/admin/survey-editor.php';
     }
 }
 
@@ -279,19 +279,19 @@ async function saveSurvey(e) {
     try {
         if (id) {
             // 수정
-            await BornAdmin.api('/born/api/surveys.php', {
+            await BornAdmin.api('/api/surveys.php', {
                 method: 'POST',
                 body: { action: 'update', id, title, start_date: startDate, end_date: endDate }
             });
             BornAdmin.toast('수정되었습니다.', 'success');
         } else {
             // 새로 만들기
-            const response = await BornAdmin.api('/born/api/surveys.php', {
+            const response = await BornAdmin.api('/api/surveys.php', {
                 method: 'POST',
                 body: { action: 'create', title }
             });
             BornAdmin.toast('생성되었습니다.', 'success');
-            location.href = `/born/admin/survey-editor.php?id=${response.data.id}`;
+            location.href = `/admin/survey-editor.php?id=${response.data.id}`;
         }
     } catch (error) {
         BornAdmin.toast(error.message, 'error');
@@ -301,8 +301,8 @@ async function saveSurvey(e) {
 async function deleteSurvey(id) {
     if (!await BornAdmin.confirmDelete('이 설문')) return;
     try {
-        await BornAdmin.api('/born/api/surveys.php', { method: 'POST', body: { action: 'delete', id } });
-        location.href = '/born/admin/survey-editor.php';
+        await BornAdmin.api('/api/surveys.php', { method: 'POST', body: { action: 'delete', id } });
+        location.href = '/admin/survey-editor.php';
     } catch (error) {
         BornAdmin.toast(error.message, 'error');
     }
@@ -310,7 +310,7 @@ async function deleteSurvey(id) {
 
 async function addPage() {
     try {
-        await BornAdmin.api('/born/api/surveys.php', {
+        await BornAdmin.api('/api/surveys.php', {
             method: 'POST',
             body: { action: 'add_page', survey_id: surveyId }
         });
@@ -324,7 +324,7 @@ async function addPage() {
 async function deletePage(pageId) {
     if (!await BornAdmin.confirmDelete('이 페이지')) return;
     try {
-        await BornAdmin.api('/born/api/surveys.php', {
+        await BornAdmin.api('/api/surveys.php', {
             method: 'POST',
             body: { action: 'delete_page', id: pageId }
         });
@@ -371,7 +371,7 @@ function openQuestionModal(pageId = null) {
 
 async function editQuestion(id) {
     try {
-        const response = await BornAdmin.api(`/born/api/surveys.php?action=get_question&id=${id}`);
+        const response = await BornAdmin.api(`/api/surveys.php?action=get_question&id=${id}`);
         const q = response.data;
 
         document.getElementById('question-modal-title').textContent = '질문 수정';
@@ -426,7 +426,7 @@ async function saveQuestion(e) {
     if (id) data.id = id;
 
     try {
-        await BornAdmin.api('/born/api/surveys.php', { method: 'POST', body: data });
+        await BornAdmin.api('/api/surveys.php', { method: 'POST', body: data });
         BornAdmin.toast('저장되었습니다.', 'success');
         BornAdmin.closeModal('question-modal');
         location.reload();
@@ -438,7 +438,7 @@ async function saveQuestion(e) {
 async function deleteQuestion(id) {
     if (!await BornAdmin.confirmDelete('이 질문')) return;
     try {
-        await BornAdmin.api('/born/api/surveys.php', { method: 'POST', body: { action: 'delete_question', id } });
+        await BornAdmin.api('/api/surveys.php', { method: 'POST', body: { action: 'delete_question', id } });
         document.querySelector(`.question-item[data-id="${id}"]`).remove();
         BornAdmin.toast('삭제되었습니다.', 'success');
     } catch (error) {

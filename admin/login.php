@@ -15,7 +15,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // 이미 로그인된 경우
 if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) {
-    redirect('/born/admin/index.php');
+    redirect('/admin/index.php');
 }
 
 $error = '';
@@ -42,7 +42,7 @@ if (is_post()) {
                 $_SESSION['admin_logged_in'] = true;
                 $_SESSION['admin_last_activity'] = time();
 
-                redirect('/born/admin/index.php');
+                redirect('/admin/index.php');
             } else {
                 $error = '아이디 또는 비밀번호가 올바르지 않습니다.';
             }
@@ -63,14 +63,14 @@ $csrfToken = generate_csrf_token();
     <title>관리자 로그인 - 본투어 인터내셔날</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css">
-    <link rel="stylesheet" href="/born/assets/css/animations.css">
-    <link rel="stylesheet" href="/born/assets/css/admin.css">
+    <link rel="stylesheet" href="/assets/css/animations.css">
+    <link rel="stylesheet" href="/assets/css/admin.css">
 </head>
 <body>
     <div class="login-page">
         <div class="login-card page-enter">
             <div class="login-logo">
-                <img src="/born/assets/images/logo/logo.png" alt="본투어 인터내셔날" onerror="this.style.display='none'">
+                <img src="/assets/images/logo/logo.png" alt="본투어 인터내셔날" onerror="this.style.display='none'">
                 <h1>본투어 인터내셔날</h1>
                 <p>관리자 로그인</p>
             </div>

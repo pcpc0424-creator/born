@@ -28,7 +28,7 @@ function require_admin_auth(): void {
         if (is_ajax()) {
             json_error('로그인이 필요합니다.', 401);
         }
-        redirect('/born/admin/login.php');
+        redirect('/admin/login.php');
     }
 
     // 세션 갱신
@@ -38,7 +38,7 @@ function require_admin_auth(): void {
             if (is_ajax()) {
                 json_error('세션이 만료되었습니다.', 401);
             }
-            redirect('/born/admin/login.php?expired=1');
+            redirect('/admin/login.php?expired=1');
         }
     }
     $_SESSION['admin_last_activity'] = time();
@@ -95,7 +95,16 @@ function require_user_auth(): void {
         if (is_ajax()) {
             json_error('로그인이 필요합니다.', 401);
         }
-        redirect('/born/user/index.php');
+        redirect('/user/index.php');
+    }
+
+    // 행사 정보 없는 세션은 로그아웃 처리
+    if (empty($_SESSION['user_event_id'])) {
+        user_logout();
+        if (is_ajax()) {
+            json_error('등록된 행사가 없습니다.', 401);
+        }
+        redirect('/user/index.php');
     }
 
     // 세션 갱신
@@ -105,7 +114,7 @@ function require_user_auth(): void {
             if (is_ajax()) {
                 json_error('세션이 만료되었습니다.', 401);
             }
-            redirect('/born/user/index.php?expired=1');
+            redirect('/user/index.php?expired=1');
         }
     }
     $_SESSION['user_last_activity'] = time();
@@ -114,7 +123,7 @@ function require_user_auth(): void {
 /**
  * 사용자 로그인 처리
  */
-function user_login(string $loginId, string $password): array {
+function user_login(string $loginId, string $password, ?string $eventCode = null): array {
     $db = db();
 
     $stmt = $db->prepare("
@@ -134,8 +143,25 @@ function user_login(string $loginId, string $password): array {
         return ['success' => false, 'error' => '아이디 또는 비밀번호가 올바르지 않습니다.'];
     }
 
+    // event_members 매핑이 없으면 event code로 자동 생성
+    if (empty($user['event_id']) && !empty($eventCode)) {
+        $stmt = $db->prepare("SELECT id, event_name, unique_code FROM events WHERE unique_code = ? AND status = 'active'");
+        $stmt->execute([$eventCode]);
+        $event = $stmt->fetch();
+
+        if ($event) {
+            // 중복 방지 후 event_members 생성
+            $stmt = $db->prepare("INSERT IGNORE INTO event_members (event_id, member_id) VALUES (?, ?)");
+            $stmt->execute([$event['id'], $user['id']]);
+
+            $user['event_id'] = $event['id'];
+            $user['event_name'] = $event['event_name'];
+            $user['unique_code'] = $event['unique_code'];
+        }
+    }
+
     if (empty($user['event_id'])) {
-        return ['success' => false, 'error' => '등록된 행사가 없습니다. 관리자에게 문의해주세요.'];
+        return ['success' => false, 'error' => '등록된 행사가 없습니다. 행사코드를 입력해주세요.'];
     }
 
     // 세션 재생성 (세션 고정 공격 방지)

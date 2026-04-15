@@ -8,23 +8,34 @@ require_once __DIR__ . '/../includes/header.php';
 
 $db = db();
 
+// 행사 목록 (필터용)
+$stmt = $db->query("SELECT id, event_name FROM events ORDER BY start_date DESC");
+$allEvents = $stmt->fetchAll();
+
 // 페이지네이션 설정
 $page = max(1, intval(input('page', 1)));
 $search = input('search', '');
+$eventFilter = input('event_id', '');
 $perPage = ITEMS_PER_PAGE_ADMIN;
 
 // 검색 조건
 $where = "1=1";
 $params = [];
+$joinEvent = "";
 
 if (!empty($search)) {
     $where .= " AND (m.name_ko LIKE ? OR m.name_en LIKE ? OR m.phone LIKE ? OR m.login_id LIKE ?)";
     $searchParam = "%{$search}%";
-    $params = [$searchParam, $searchParam, $searchParam, $searchParam];
+    $params = array_merge($params, [$searchParam, $searchParam, $searchParam, $searchParam]);
+}
+
+if (!empty($eventFilter)) {
+    $joinEvent = "INNER JOIN event_members emf ON emf.member_id = m.id AND emf.event_id = ?";
+    $params[] = (int)$eventFilter;
 }
 
 // 전체 회원 수
-$stmt = $db->prepare("SELECT COUNT(*) as total FROM members m WHERE {$where}");
+$stmt = $db->prepare("SELECT COUNT(DISTINCT m.id) as total FROM members m {$joinEvent} WHERE {$where}");
 $stmt->execute($params);
 $totalItems = $stmt->fetch()['total'];
 $pagination = calculate_pagination($totalItems, $page, $perPage);
@@ -37,7 +48,9 @@ $sql = "
             JOIN events e ON em.event_id = e.id
             WHERE em.member_id = m.id) as events
     FROM members m
+    {$joinEvent}
     WHERE {$where}
+    GROUP BY m.id
     ORDER BY m.created_at DESC
     LIMIT {$pagination['offset']}, {$perPage}
 ";
@@ -56,6 +69,14 @@ $members = $stmt->fetchAll();
         <input type="text" class="form-input search-input" id="search-input"
                placeholder="이름, 연락처, 아이디 검색..."
                value="<?= h($search) ?>">
+    </div>
+    <div style="margin: 0 12px;">
+        <select id="event-filter" class="form-select" onchange="filterByEvent(this.value)" style="min-width: 180px;">
+            <option value="">전체 행사</option>
+            <?php foreach ($allEvents as $ev): ?>
+                <option value="<?= $ev['id'] ?>" <?= $eventFilter == $ev['id'] ? 'selected' : '' ?>><?= h($ev['event_name']) ?></option>
+            <?php endforeach; ?>
+        </select>
     </div>
     <div class="filter-group">
         <button type="button" class="btn btn-secondary" onclick="exportExcel()">
@@ -94,11 +115,11 @@ $members = $stmt->fetchAll();
                         <th style="width: 40px;">
                             <input type="checkbox" class="check-all">
                         </th>
-                        <th>이름</th>
                         <th>아이디</th>
-                        <th>연락처</th>
-                        <th>생년월일</th>
+                        <th>이름</th>
                         <th>성별</th>
+                        <th>생년월일</th>
+                        <th>연락처</th>
                         <th>참여 행사</th>
                         <th>가입일</th>
                         <th style="width: 100px;">관리</th>
@@ -117,15 +138,13 @@ $members = $stmt->fetchAll();
                                 <td>
                                     <input type="checkbox" class="check-item" value="<?= $member['id'] ?>">
                                 </td>
+                                <td style="font-family: monospace;"><?= h($member['login_id']) ?></td>
                                 <td>
                                     <div style="font-weight: 600;"><?= h($member['name_ko']) ?></div>
                                     <?php if ($member['name_en']): ?>
                                         <div style="font-size: 12px; color: var(--gray-500);"><?= h($member['name_en']) ?></div>
                                     <?php endif; ?>
                                 </td>
-                                <td style="font-family: monospace;"><?= h($member['login_id']) ?></td>
-                                <td><?= $member['phone'] ? format_phone($member['phone']) : '-' ?></td>
-                                <td><?= $member['birth_date'] ? date('Y.m.d', strtotime($member['birth_date'])) : '-' ?></td>
                                 <td>
                                     <?php if ($member['gender']): ?>
                                         <span class="badge <?= $member['gender'] === 'M' ? 'badge-primary' : 'badge-error' ?>" style="<?= $member['gender'] === 'F' ? 'background: #fce4ec; color: #c2185b;' : '' ?>">
@@ -135,6 +154,8 @@ $members = $stmt->fetchAll();
                                         -
                                     <?php endif; ?>
                                 </td>
+                                <td><?= $member['birth_date'] ? date('Y.m.d', strtotime($member['birth_date'])) : '-' ?></td>
+                                <td><?= $member['phone'] ? format_phone($member['phone']) : '-' ?></td>
                                 <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                     <?= $member['events'] ? h($member['events']) : '<span style="color: var(--gray-400);">없음</span>' ?>
                                 </td>
@@ -240,20 +261,11 @@ $members = $stmt->fetchAll();
                     </div>
                     <div class="form-group">
                         <label class="form-label">영문 이름</label>
-                        <input type="text" name="name_en" id="member-name-en" class="form-input" placeholder="HONG GILDONG">
+                        <input type="text" name="name_en" id="member-name-en" class="form-input" placeholder="HONG / GILDONG">
                     </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">연락처</label>
-                    <input type="tel" name="phone" id="member-phone" class="form-input" placeholder="010-0000-0000">
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                    <div class="form-group">
-                        <label class="form-label">생년월일</label>
-                        <input type="date" name="birth_date" id="member-birth-date" class="form-input">
-                    </div>
                     <div class="form-group">
                         <label class="form-label">성별</label>
                         <select name="gender" id="member-gender" class="form-select">
@@ -262,6 +274,15 @@ $members = $stmt->fetchAll();
                             <option value="F">여성</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">생년월일</label>
+                        <input type="date" name="birth_date" id="member-birth-date" class="form-input">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">연락처</label>
+                    <input type="tel" name="phone" id="member-phone" class="form-input" placeholder="010-0000-0000">
                 </div>
             </div>
             <div class="modal-footer">
@@ -286,19 +307,19 @@ $members = $stmt->fetchAll();
         <div class="modal-body">
             <div style="background: var(--info-light); color: var(--info); padding: 16px; border-radius: var(--radius-md); margin-bottom: 20px; font-size: 14px;">
                 <strong>엑셀 양식 안내</strong><br>
-                아이디, 비밀번호, 한글이름, 영문이름, 연락처, 생년월일, 성별 순으로 작성해주세요.
+                아이디, 비밀번호, 한글이름, 영문이름, 성별, 생년월일, 연락처 순으로 작성해주세요.
             </div>
 
             <form id="import-form" enctype="multipart/form-data">
                 <div class="form-group">
                     <label class="form-label">엑셀 파일 선택</label>
-                    <input type="file" name="excel_file" id="excel-file" class="form-input" accept=".xlsx,.xls">
-                    <span class="form-hint">.xlsx, .xls 파일만 업로드 가능합니다.</span>
+                    <input type="file" name="excel_file" id="excel-file" class="form-input" accept=".xlsx,.xls,.csv">
+                    <span class="form-hint">.xlsx, .xls, .csv 파일 업로드 가능합니다.</span>
                 </div>
             </form>
 
             <div style="margin-top: 16px;">
-                <a href="/born/api/members.php?action=download_template" class="btn btn-secondary btn-sm">
+                <a href="/api/members.php?action=download_template" class="btn btn-secondary btn-sm">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                         <polyline points="7 10 12 15 17 10"/>
@@ -330,6 +351,18 @@ document.getElementById('search-input').addEventListener('input', BornAdmin.debo
     window.location.href = url.toString();
 }, 500));
 
+// 행사 필터
+function filterByEvent(eventId) {
+    const url = new URL(window.location);
+    if (eventId) {
+        url.searchParams.set('event_id', eventId);
+    } else {
+        url.searchParams.delete('event_id');
+    }
+    url.searchParams.delete('page');
+    window.location.href = url.toString();
+}
+
 // 페이지 이동
 function goToPage(page) {
     const url = new URL(window.location);
@@ -351,7 +384,7 @@ function openMemberModal() {
 // 회원 수정
 async function editMember(id) {
     try {
-        const response = await BornAdmin.api(`/born/api/members.php?action=get&id=${id}`);
+        const response = await BornAdmin.api(`/api/members.php?action=get&id=${id}`);
         const member = response.data;
 
         document.getElementById('member-modal-title').textContent = '회원 수정';
@@ -386,7 +419,7 @@ async function saveMember(event) {
 
     try {
         BornAdmin.showLoading('#member-submit-btn');
-        await BornAdmin.api('/born/api/members.php', {
+        await BornAdmin.api('/api/members.php', {
             method: 'POST',
             body: data
         });
@@ -406,7 +439,7 @@ async function deleteMember(id) {
     if (!await BornAdmin.confirmDelete('이 회원')) return;
 
     try {
-        await BornAdmin.api('/born/api/members.php', {
+        await BornAdmin.api('/api/members.php', {
             method: 'POST',
             body: { action: 'delete', id: id }
         });
@@ -421,7 +454,10 @@ async function deleteMember(id) {
 // 엑셀 다운로드
 function exportExcel() {
     const search = document.getElementById('search-input').value;
-    window.location.href = `/born/api/members.php?action=export&search=${encodeURIComponent(search)}`;
+    const eventId = document.getElementById('event-filter').value;
+    let url = `/api/members.php?action=export&search=${encodeURIComponent(search)}`;
+    if (eventId) url += `&event_id=${eventId}`;
+    window.location.href = url;
 }
 
 // 엑셀 업로드
@@ -437,7 +473,7 @@ async function importExcel() {
     formData.append('excel_file', fileInput.files[0]);
 
     try {
-        const response = await BornAdmin.api('/born/api/members.php', {
+        const response = await BornAdmin.api('/api/members.php', {
             method: 'POST',
             body: formData
         });

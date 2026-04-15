@@ -15,11 +15,12 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // 이미 로그인된 경우
 if (isset($_SESSION['user_logged_in']) && $_SESSION['user_logged_in'] === true) {
-    redirect('/born/user/main.php');
+    redirect('/user/main.php');
 }
 
 $error = '';
 $expired = isset($_GET['expired']);
+$registered = isset($_GET['registered']);
 $eventCode = input('code');
 $event = null;
 
@@ -40,10 +41,10 @@ if (is_post()) {
         $error = '아이디와 비밀번호를 입력해주세요.';
     } else {
         require_once __DIR__ . '/../includes/auth.php';
-        $result = user_login($loginId, $password);
+        $result = user_login($loginId, $password, $eventCode);
 
         if ($result['success']) {
-            redirect('/born/user/main.php');
+            redirect('/user/main.php');
         } else {
             $error = $result['error'];
         }
@@ -61,9 +62,9 @@ $pageTitle = $event ? h($event['event_name']) . ' - 본투어' : '로그인 - �
     <title><?= $pageTitle ?></title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css">
-    <link rel="stylesheet" href="/born/assets/css/animations.css">
-    <link rel="stylesheet" href="/born/assets/css/user.css">
-    <link rel="stylesheet" href="/born/assets/css/user-pc.css">
+    <link rel="stylesheet" href="/assets/css/animations.css">
+    <link rel="stylesheet" href="/assets/css/user.css">
+    <link rel="stylesheet" href="/assets/css/user-pc.css">
     <style>
         .login-logos {
             display: flex;
@@ -73,8 +74,8 @@ $pageTitle = $event ? h($event['event_name']) . ' - 본투어' : '로그인 - �
             margin-bottom: 20px;
         }
         .login-logos img {
-            max-height: 50px;
-            max-width: 120px;
+            max-height: 80px;
+            max-width: 200px;
             object-fit: contain;
         }
         .login-logos .logo-divider {
@@ -85,13 +86,13 @@ $pageTitle = $event ? h($event['event_name']) . ' - 본투어' : '로그인 - �
         .login-event-name {
             font-size: 20px;
             font-weight: 700;
-            color: var(--gray-800);
+            color: #ffffff;
             margin-bottom: 8px;
             text-align: center;
         }
         .login-event-date {
             font-size: 14px;
-            color: var(--gray-600);
+            color: rgba(255, 255, 255, 0.85);
             text-align: center;
             margin-bottom: 24px;
         }
@@ -134,11 +135,11 @@ $pageTitle = $event ? h($event['event_name']) . ' - 본투어' : '로그인 - �
                             <!-- 거래처 로고 + 본투어 로고 조합 -->
                             <div class="login-logos">
                                 <?php if (!empty($event['client_logo'])): ?>
-                                    <img src="/born/uploads/logos/<?= h($event['client_logo']) ?>" alt="거래처 로고">
+                                    <img src="/uploads/logos/<?= h($event['client_logo']) ?>" alt="거래처 로고">
                                     <span class="logo-divider"></span>
                                 <?php endif; ?>
                                 <div style="text-align: center;">
-                                    <span class="born-logo-text" style="font-size: 16px; font-weight: 700; color: var(--primary-600);">BORN TOUR</span>
+                                    <span class="born-logo-text" style="font-size: 16px; font-weight: 700; color: var(--primary-600);">(주)본투어인터내셔날</span>
                                 </div>
                             </div>
                             <!-- 행사명 -->
@@ -157,6 +158,12 @@ $pageTitle = $event ? h($event['event_name']) . ' - 본투어' : '로그인 - �
                         <?php if ($error): ?>
                             <div style="background: var(--error-light); color: var(--error); padding: 12px 16px; border-radius: var(--radius-md); margin-bottom: 20px; font-size: 14px;">
                                 <?= h($error) ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($registered): ?>
+                            <div style="background: #e8f5e9; color: #2e7d32; padding: 12px 16px; border-radius: var(--radius-md); margin-bottom: 20px; font-size: 14px;">
+                                회원가입이 완료되었습니다. 로그인해주세요.
                             </div>
                         <?php endif; ?>
 
@@ -189,7 +196,20 @@ $pageTitle = $event ? h($event['event_name']) . ' - 본투어' : '로그인 - �
                             </button>
                         </form>
 
-                        <div style="margin-top: 24px; text-align: center;">
+                        <div style="margin-top: 20px; text-align: center;">
+                            <a href="/user/register.php<?= $eventCode ? '?code=' . h($eventCode) : '' ?>"
+                               style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px; background: var(--gray-50); color: var(--gray-700); border: 1px solid var(--gray-200); border-radius: var(--radius-md); font-size: 15px; font-weight: 600; text-decoration: none; transition: all 0.3s ease;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="8.5" cy="7" r="4"/>
+                                    <line x1="20" y1="8" x2="20" y2="14"/>
+                                    <line x1="23" y1="11" x2="17" y2="11"/>
+                                </svg>
+                                회원가입
+                            </a>
+                        </div>
+
+                        <div style="margin-top: 16px; text-align: center;">
                             <p style="font-size: 13px; color: var(--gray-700); font-weight: 500;">
                                 로그인 정보를 모르시나요?
                             </p>
@@ -205,7 +225,7 @@ $pageTitle = $event ? h($event['event_name']) . ' - 본투어' : '로그인 - �
 
                         <!-- 본투어 로고 (하단) -->
                         <div class="born-logo-footer">
-                            <span class="born-logo-text">BORN TOUR INTERNATIONAL</span>
+                            <span class="born-logo-text">(주)본투어인터내셔날</span>
                             <span class="born-slogan">"세계를 추억으로" 본투어 인터내셔날이 함께합니다</span>
                         </div>
                     </div>
@@ -218,6 +238,6 @@ $pageTitle = $event ? h($event['event_name']) . ' - 본투어' : '로그인 - �
         </div>
     </div>
 
-    <script src="/born/assets/js/user.js"></script>
+    <script src="/assets/js/user.js"></script>
 </body>
 </html>

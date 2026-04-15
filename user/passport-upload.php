@@ -10,7 +10,7 @@ $user = get_logged_in_user();
 $visibility = get_page_visibility($user['event_id']);
 
 if (!$visibility['passport_upload']) {
-    redirect('/born/user/main.php');
+    redirect('/user/main.php');
 }
 
 $db = db();
@@ -43,64 +43,9 @@ $pageTitle = '여권 정보 등록';
     <meta name="theme-color" content="#6dc5d1">
     <title><?= $pageTitle ?> - 본투어</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css">
-    <link rel="stylesheet" href="/born/assets/css/animations.css">
-    <link rel="stylesheet" href="/born/assets/css/user.css">
-    <link rel="stylesheet" href="/born/assets/css/user-pc.css">
-    <!-- Tesseract.js for OCR -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <style>
-        .ocr-section {
-            margin-top: 12px;
-            padding: 12px;
-            background: var(--primary-50);
-            border-radius: var(--radius-md);
-            border: 1px dashed var(--primary-300);
-        }
-        .ocr-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            padding: 12px;
-            background: var(--primary-600);
-            color: white;
-            border: none;
-            border-radius: var(--radius-md);
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-        }
-        .ocr-btn:hover {
-            background: var(--primary-700);
-        }
-        .ocr-btn:disabled {
-            background: var(--gray-400);
-            cursor: not-allowed;
-        }
-        .ocr-progress {
-            display: none;
-            margin-top: 12px;
-        }
-        .ocr-progress-bar {
-            height: 4px;
-            background: var(--gray-200);
-            border-radius: 2px;
-            overflow: hidden;
-        }
-        .ocr-progress-fill {
-            height: 100%;
-            background: var(--primary-600);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-        .ocr-progress-text {
-            font-size: 12px;
-            color: var(--gray-600);
-            margin-top: 8px;
-            text-align: center;
-        }
-    </style>
+    <link rel="stylesheet" href="/assets/css/animations.css">
+    <link rel="stylesheet" href="/assets/css/user.css">
+    <link rel="stylesheet" href="/assets/css/user-pc.css">
 </head>
 <body>
     <div class="phone-frame">
@@ -165,22 +110,6 @@ $pageTitle = '여권 정보 등록';
                                     <img src="" alt="미리보기">
                                     <button type="button" class="remove-image" onclick="removeImage()">×</button>
                                 </div>
-                                <!-- OCR 스캔 섹션 -->
-                                <div id="ocrSection" class="ocr-section" style="display: none;">
-                                    <button type="button" id="ocrBtn" class="ocr-btn" onclick="runOCR()">
-                                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                                            <circle cx="12" cy="13" r="4"/>
-                                        </svg>
-                                        여권 정보 자동 인식 (OCR)
-                                    </button>
-                                    <div id="ocrProgress" class="ocr-progress">
-                                        <div class="ocr-progress-bar">
-                                            <div id="ocrProgressFill" class="ocr-progress-fill"></div>
-                                        </div>
-                                        <p id="ocrProgressText" class="ocr-progress-text">준비 중...</p>
-                                    </div>
-                                </div>
                             </div>
 
                             <!-- 기본 정보 -->
@@ -193,18 +122,27 @@ $pageTitle = '여권 정보 등록';
                                            value="<?= h($passport['name_ko'] ?? $user['name_ko']) ?>" required>
                                 </div>
 
-                                <div class="form-group">
-                                    <label class="form-label" for="nameEn">영문 이름 <span class="required">*</span></label>
-                                    <input type="text" id="nameEn" name="name_en" class="form-input"
-                                           value="<?= h($passport['name_en'] ?? $user['name_en'] ?? '') ?>"
-                                           placeholder="여권상 영문 이름" required>
-                                    <small class="form-hint">여권에 기재된 영문 이름을 정확히 입력해주세요.</small>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label" for="nameEnLast">영문 성 <span class="required">*</span></label>
+                                        <input type="text" id="nameEnLast" name="name_en_last" class="form-input"
+                                               value="<?= h($passport['name_en_last'] ?? '') ?>"
+                                               placeholder="LEE" style="text-transform: uppercase;" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="nameEnFirst">영문 이름 <span class="required">*</span></label>
+                                        <input type="text" id="nameEnFirst" name="name_en_first" class="form-input"
+                                               value="<?= h($passport['name_en_first'] ?? '') ?>"
+                                               placeholder="EUNJUNG" style="text-transform: uppercase;" required>
+                                    </div>
                                 </div>
+                                <input type="hidden" id="nameEn" name="name_en" value="<?= h($passport['name_en'] ?? $user['name_en'] ?? '') ?>">
+                                <small class="form-hint" style="margin-top: -8px; margin-bottom: 12px; display: block;">여권에 기재된 영문 성/이름을 정확히 입력해주세요.</small>
 
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label class="form-label" for="gender">성별</label>
-                                        <select id="gender" name="gender" class="form-select">
+                                        <label class="form-label" for="gender">성별 <span class="required">*</span></label>
+                                        <select id="gender" name="gender" class="form-select" required>
                                             <option value="">선택</option>
                                             <option value="M" <?= ($passport['gender'] ?? '') === 'M' ? 'selected' : '' ?>>남성</option>
                                             <option value="F" <?= ($passport['gender'] ?? '') === 'F' ? 'selected' : '' ?>>여성</option>
@@ -212,9 +150,9 @@ $pageTitle = '여권 정보 등록';
                                     </div>
 
                                     <div class="form-group">
-                                        <label class="form-label" for="birthDate">생년월일</label>
+                                        <label class="form-label" for="birthDate">생년월일 <span class="required">*</span></label>
                                         <input type="date" id="birthDate" name="birth_date" class="form-input"
-                                               value="<?= h($passport['birth_date'] ?? '') ?>">
+                                               value="<?= h($passport['birth_date'] ?? '') ?>" required>
                                     </div>
                                 </div>
                             </div>
@@ -231,9 +169,9 @@ $pageTitle = '여권 정보 등록';
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label" for="expiryDate">여권 만료일</label>
+                                    <label class="form-label" for="expiryDate">여권 만료일 <span class="required">*</span></label>
                                     <input type="date" id="expiryDate" name="expiry_date" class="form-input"
-                                           value="<?= h($passport['expiry_date'] ?? '') ?>">
+                                           value="<?= h($passport['expiry_date'] ?? '') ?>" required>
                                     <small class="form-hint">여행일 기준 6개월 이상 유효해야 합니다.</small>
                                 </div>
                             </div>
@@ -243,16 +181,16 @@ $pageTitle = '여권 정보 등록';
                                 <h3 class="form-section-title">연락처</h3>
 
                                 <div class="form-group">
-                                    <label class="form-label" for="phone">휴대폰 번호</label>
+                                    <label class="form-label" for="phone">휴대폰 번호 <span class="required">*</span></label>
                                     <input type="tel" id="phone" name="phone" class="form-input"
                                            value="<?= h($passport['phone'] ?? $user['phone'] ?? '') ?>"
-                                           placeholder="010-0000-0000">
+                                           placeholder="010-0000-0000" required>
                                 </div>
                             </div>
 
                             <!-- 주민번호 뒷자리 (선택) -->
                             <div class="form-section">
-                                <h3 class="form-section-title">추가 정보 <span class="optional">(선택)</span></h3>
+                                <h3 class="form-section-title">추가 정보</h3>
 
                                 <div class="form-group">
                                     <label class="form-label" for="ssnBack">주민번호 뒷자리</label>
@@ -275,9 +213,29 @@ $pageTitle = '여권 정보 등록';
         </div>
     </div>
 
-    <script src="/born/assets/js/user.js"></script>
+    <script src="/assets/js/user.js"></script>
     <script>
-        let currentImageData = null;
+        // 기존 name_en을 성/이름으로 분리하여 초기값 설정
+        (function() {
+            const lastEl = document.getElementById('nameEnLast');
+            const firstEl = document.getElementById('nameEnFirst');
+            const fullEl = document.getElementById('nameEn');
+            if (!lastEl.value && !firstEl.value && fullEl.value) {
+                const parts = fullEl.value.trim().split(/\s+/);
+                if (parts.length >= 2) {
+                    lastEl.value = parts[0].toUpperCase();
+                    firstEl.value = parts.slice(1).join(' ').toUpperCase();
+                } else {
+                    lastEl.value = fullEl.value.toUpperCase();
+                }
+            }
+            // 성/이름 변경 시 hidden에 합치기
+            function syncNameEn() {
+                fullEl.value = (lastEl.value.trim() + ' ' + firstEl.value.trim()).trim().toUpperCase();
+            }
+            lastEl.addEventListener('input', syncNameEn);
+            firstEl.addEventListener('input', syncNameEn);
+        })();
 
         // 이미지 미리보기
         document.getElementById('passportImage').addEventListener('change', function(e) {
@@ -285,13 +243,10 @@ $pageTitle = '여권 정보 등록';
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    currentImageData = e.target.result;
                     const preview = document.getElementById('imagePreview');
                     preview.querySelector('img').src = e.target.result;
                     preview.style.display = 'block';
                     document.querySelector('.passport-image-upload').style.display = 'none';
-                    // Show OCR section
-                    document.getElementById('ocrSection').style.display = 'block';
                 };
                 reader.readAsDataURL(file);
             }
@@ -301,189 +256,6 @@ $pageTitle = '여권 정보 등록';
             document.getElementById('passportImage').value = '';
             document.getElementById('imagePreview').style.display = 'none';
             document.querySelector('.passport-image-upload').style.display = 'block';
-            document.getElementById('ocrSection').style.display = 'none';
-            currentImageData = null;
-        }
-
-        // OCR 실행
-        async function runOCR() {
-            if (!currentImageData) {
-                BornUser.toast('이미지를 먼저 업로드해주세요.', 'error');
-                return;
-            }
-
-            const ocrBtn = document.getElementById('ocrBtn');
-            const ocrProgress = document.getElementById('ocrProgress');
-            const progressFill = document.getElementById('ocrProgressFill');
-            const progressText = document.getElementById('ocrProgressText');
-
-            ocrBtn.disabled = true;
-            ocrProgress.style.display = 'block';
-
-            try {
-                progressText.textContent = 'OCR 엔진 로딩 중...';
-                progressFill.style.width = '10%';
-
-                const result = await Tesseract.recognize(
-                    currentImageData,
-                    'eng',
-                    {
-                        logger: m => {
-                            if (m.status === 'recognizing text') {
-                                const progress = Math.round(m.progress * 80) + 10;
-                                progressFill.style.width = progress + '%';
-                                progressText.textContent = `텍스트 인식 중... ${Math.round(m.progress * 100)}%`;
-                            }
-                        }
-                    }
-                );
-
-                progressFill.style.width = '100%';
-                progressText.textContent = '분석 중...';
-
-                // Parse the recognized text
-                const text = result.data.text;
-                console.log('OCR Result:', text);
-
-                // Try to parse MRZ (Machine Readable Zone)
-                const passportData = parseMRZ(text) || parseGeneralText(text);
-
-                if (passportData) {
-                    fillFormWithData(passportData);
-                    BornUser.toast('여권 정보가 자동으로 입력되었습니다.', 'success');
-                } else {
-                    BornUser.toast('여권 정보를 인식하지 못했습니다. 수동으로 입력해주세요.', 'warning');
-                }
-
-            } catch (error) {
-                console.error('OCR Error:', error);
-                BornUser.toast('OCR 처리 중 오류가 발생했습니다.', 'error');
-            } finally {
-                ocrBtn.disabled = false;
-                ocrProgress.style.display = 'none';
-                progressFill.style.width = '0%';
-            }
-        }
-
-        // MRZ 파싱 (여권 기계 판독 영역)
-        function parseMRZ(text) {
-            const lines = text.split('\n').map(l => l.trim().replace(/\s/g, ''));
-
-            // Find MRZ lines (start with P and contain < characters)
-            let mrzLines = [];
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                if (line.length >= 40 && (line.startsWith('P') || line.includes('<') || /^[A-Z0-9<]{40,}$/.test(line))) {
-                    mrzLines.push(line);
-                }
-            }
-
-            if (mrzLines.length < 2) return null;
-
-            // Get the last two valid MRZ lines
-            const line1 = mrzLines[mrzLines.length - 2] || '';
-            const line2 = mrzLines[mrzLines.length - 1] || '';
-
-            if (line1.length < 44 || line2.length < 44) return null;
-
-            const result = {};
-
-            // Parse Line 1: P<CTRFAMILYNAME<<GIVENNAMES<<<<<<<<<<<<<<<<
-            if (line1.startsWith('P')) {
-                const namePart = line1.substring(5);
-                const names = namePart.split('<<');
-                if (names.length >= 2) {
-                    const familyName = names[0].replace(/</g, ' ').trim();
-                    const givenName = names[1].replace(/</g, ' ').trim();
-                    result.nameEn = (givenName + ' ' + familyName).toUpperCase();
-                }
-            }
-
-            // Parse Line 2: PASSPORT_NUMBERCTR BIRTH_DATE GENDER EXPIRY_DATE REST
-            // Format: [Passport# 9][Check 1][Nationality 3][DOB 6][Check 1][Sex 1][Expiry 6][Check 1]...
-            if (line2.length >= 28) {
-                result.passportNo = line2.substring(0, 9).replace(/</g, '').replace(/0/g, 'O').replace(/O(?=[0-9])/g, '0');
-
-                const birthDate = line2.substring(13, 19);
-                if (/^\d{6}$/.test(birthDate)) {
-                    const year = parseInt(birthDate.substring(0, 2));
-                    const fullYear = year > 30 ? 1900 + year : 2000 + year;
-                    result.birthDate = `${fullYear}-${birthDate.substring(2, 4)}-${birthDate.substring(4, 6)}`;
-                }
-
-                const gender = line2.charAt(20);
-                if (gender === 'M' || gender === 'F') {
-                    result.gender = gender;
-                }
-
-                const expiryDate = line2.substring(21, 27);
-                if (/^\d{6}$/.test(expiryDate)) {
-                    const year = 2000 + parseInt(expiryDate.substring(0, 2));
-                    result.expiryDate = `${year}-${expiryDate.substring(2, 4)}-${expiryDate.substring(4, 6)}`;
-                }
-            }
-
-            return Object.keys(result).length > 0 ? result : null;
-        }
-
-        // 일반 텍스트에서 여권 정보 추출
-        function parseGeneralText(text) {
-            const result = {};
-            const upperText = text.toUpperCase();
-
-            // 여권번호 패턴 (한국 여권: M + 8자리 숫자)
-            const passportMatch = upperText.match(/[MP][A-Z]?\d{7,8}/);
-            if (passportMatch) {
-                result.passportNo = passportMatch[0];
-            }
-
-            // 날짜 패턴들
-            const datePatterns = [
-                /(\d{4})[.\-/](\d{2})[.\-/](\d{2})/g,  // YYYY-MM-DD
-                /(\d{2})[.\-/](\d{2})[.\-/](\d{4})/g,  // DD-MM-YYYY
-            ];
-
-            const dates = [];
-            for (const pattern of datePatterns) {
-                let match;
-                while ((match = pattern.exec(text)) !== null) {
-                    dates.push(match[0]);
-                }
-            }
-
-            // 영문 이름 패턴 (대문자 2개 이상 단어의 조합)
-            const nameMatch = upperText.match(/([A-Z]{2,}\s+)+[A-Z]{2,}/);
-            if (nameMatch) {
-                result.nameEn = nameMatch[0].trim();
-            }
-
-            // 성별
-            if (upperText.includes(' M ') || upperText.includes('/M/') || upperText.includes('MALE')) {
-                result.gender = 'M';
-            } else if (upperText.includes(' F ') || upperText.includes('/F/') || upperText.includes('FEMALE')) {
-                result.gender = 'F';
-            }
-
-            return Object.keys(result).length > 0 ? result : null;
-        }
-
-        // 폼에 데이터 입력
-        function fillFormWithData(data) {
-            if (data.nameEn) {
-                document.getElementById('nameEn').value = data.nameEn;
-            }
-            if (data.passportNo) {
-                document.getElementById('passportNo').value = data.passportNo;
-            }
-            if (data.birthDate) {
-                document.getElementById('birthDate').value = data.birthDate;
-            }
-            if (data.gender) {
-                document.getElementById('gender').value = data.gender;
-            }
-            if (data.expiryDate) {
-                document.getElementById('expiryDate').value = data.expiryDate;
-            }
         }
 
         // 폼 제출
@@ -494,7 +266,7 @@ $pageTitle = '여권 정보 등록';
             formData.append('action', 'upload');
 
             try {
-                const response = await fetch('/born/api/passports.php', {
+                const response = await fetch('/api/passports.php', {
                     method: 'POST',
                     body: formData
                 });
@@ -504,10 +276,10 @@ $pageTitle = '여권 정보 등록';
                 if (result.success) {
                     BornUser.toast(result.message || '저장되었습니다.', 'success');
                     setTimeout(() => {
-                        location.href = '/born/user/main.php';
+                        location.href = '/user/main.php';
                     }, 1500);
                 } else {
-                    BornUser.toast(result.error || '저장에 실패했습니다.', 'error');
+                    BornUser.toast(result.message || result.error || '저장에 실패했습니다.', 'error');
                 }
             } catch (error) {
                 BornUser.toast('오류가 발생했습니다.', 'error');

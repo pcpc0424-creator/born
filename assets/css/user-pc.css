@@ -7,7 +7,7 @@
     body {
         /* 나무 테이블 배경 - 이미지가 있으면 url()로 교체 */
         background:
-            url('/born/assets/images/bg/phone-table.jpg') center/cover no-repeat fixed,
+            url('/assets/images/bg/phone-table.jpg') center/cover no-repeat fixed,
             linear-gradient(135deg, #8B7355 0%, #6B5344 50%, #4A3728 100%);
         min-height: 100vh;
         display: flex;

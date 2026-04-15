@@ -10,14 +10,14 @@ $user = get_logged_in_user();
 $visibility = get_page_visibility($user['event_id']);
 
 if (!$visibility['survey']) {
-    redirect('/born/user/main.php');
+    redirect('/user/main.php');
 }
 
 $db = db();
 
-// 활성화된 설문 조회
-$stmt = $db->prepare("SELECT * FROM surveys WHERE status = 'active' ORDER BY id DESC LIMIT 1");
-$stmt->execute();
+// 해당 행사의 활성화된 설문 조회
+$stmt = $db->prepare("SELECT * FROM surveys WHERE event_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1");
+$stmt->execute([$user['event_id']]);
 $survey = $stmt->fetch();
 
 if (!$survey) {
@@ -78,9 +78,9 @@ if (!$survey) {
     <meta name="theme-color" content="#6dc5d1">
     <title><?= h($pageTitle) ?> - 본투어</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css">
-    <link rel="stylesheet" href="/born/assets/css/animations.css">
-    <link rel="stylesheet" href="/born/assets/css/user.css">
-    <link rel="stylesheet" href="/born/assets/css/user-pc.css">
+    <link rel="stylesheet" href="/assets/css/animations.css">
+    <link rel="stylesheet" href="/assets/css/user.css">
+    <link rel="stylesheet" href="/assets/css/user-pc.css">
     <style>
         /* 텍스트 확장 모달 */
         .text-expand-modal {
@@ -229,7 +229,8 @@ if (!$survey) {
                                     <line x1="16" y1="13" x2="8" y2="13"/>
                                     <line x1="16" y1="17" x2="8" y2="17"/>
                                 </svg>
-                                <p>진행 중인 설문이 없습니다.</p>
+                                <p>등록된 설문조사가 없습니다.</p>
+                                <p class="sub" style="font-size: 13px; color: var(--gray-400); margin-top: 4px;">설문조사가 등록되면 이곳에서 참여할 수 있습니다.</p>
                             </div>
                         <?php elseif ($completed): ?>
                             <div class="completion-state page-enter">
@@ -241,7 +242,7 @@ if (!$survey) {
                                 </div>
                                 <h2>설문 참여 완료</h2>
                                 <p>설문에 참여해 주셔서 감사합니다.</p>
-                                <a href="/born/user/main.php" class="btn btn-primary">메인으로 돌아가기</a>
+                                <a href="/user/main.php" class="btn btn-primary">메인으로 돌아가기</a>
                             </div>
                         <?php else: ?>
                             <!-- 설문 진행 -->
@@ -363,7 +364,7 @@ if (!$survey) {
         </div>
     </div>
 
-    <script src="/born/assets/js/user.js"></script>
+    <script src="/assets/js/user.js"></script>
     <script>
         // 텍스트 확장 모달 관련
         let currentExpandTextarea = null;
@@ -483,7 +484,7 @@ if (!$survey) {
             }
 
             try {
-                await fetch('/born/api/surveys.php', {
+                await fetch('/api/surveys.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -516,7 +517,7 @@ if (!$survey) {
             }
 
             try {
-                const response = await fetch('/born/api/surveys.php', {
+                const response = await fetch('/api/surveys.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

@@ -10,7 +10,7 @@ $user = get_logged_in_user();
 $visibility = get_page_visibility($user['event_id']);
 
 if (!$visibility['meeting']) {
-    redirect('/born/user/main.php');
+    redirect('/user/main.php');
 }
 
 $db = db();
@@ -28,9 +28,9 @@ $pageTitle = '공항 미팅';
     <meta name="theme-color" content="#6dc5d1">
     <title><?= $pageTitle ?> - 본투어</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css">
-    <link rel="stylesheet" href="/born/assets/css/animations.css">
-    <link rel="stylesheet" href="/born/assets/css/user.css">
-    <link rel="stylesheet" href="/born/assets/css/user-pc.css">
+    <link rel="stylesheet" href="/assets/css/animations.css">
+    <link rel="stylesheet" href="/assets/css/user.css">
+    <link rel="stylesheet" href="/assets/css/user-pc.css">
 </head>
 <body>
     <div class="phone-frame">
@@ -134,27 +134,40 @@ $pageTitle = '공항 미팅';
                                 </div>
 
                                 <?php if ($event['manager_phone']): ?>
-                                    <a href="tel:<?= h($event['manager_phone']) ?>" class="btn btn-primary btn-block" style="margin-top: 16px;">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px; margin-right: 8px;">
+                                    <div style="margin-top: 16px; display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: var(--primary-50); border-radius: var(--radius-md);">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary-600)" stroke-width="2" style="width: 18px; height: 18px; flex-shrink: 0;">
                                             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                                         </svg>
-                                        전화 연결
-                                    </a>
+                                        <span style="font-size: 15px; font-weight: 600; color: var(--gray-800);"><?= h($event['manager_phone']) ?></span>
+                                    </div>
                                 <?php endif; ?>
                             </div>
                         </div>
 
                         <!-- 안내사항 -->
+                        <?php
+                        $meetingNotice = $event['meeting_notice'] ?? '';
+                        if (empty($meetingNotice)) {
+                            // 기본 안내사항
+                            $defaultNotices = [
+                                '미팅 시간 10분 전까지 미팅 장소에 도착해 주세요.',
+                                '여권과 항공권(e-ticket)을 반드시 지참해 주세요.',
+                                '미팅 장소를 찾기 어려우시면 인솔자에게 연락 주세요.',
+                                '본투어 인터내셔날 피켓을 들고 있는 인솔자를 찾아주세요.',
+                            ];
+                        } else {
+                            $defaultNotices = array_filter(array_map('trim', explode("\n", $meetingNotice)));
+                        }
+                        ?>
                         <div class="info-card page-enter" style="animation-delay: 0.3s;">
                             <div class="info-card-header">
                                 <h3>안내사항</h3>
                             </div>
                             <div class="info-card-body">
                                 <ul class="notice-list">
-                                    <li>미팅 시간 10분 전까지 미팅 장소에 도착해 주세요.</li>
-                                    <li>여권과 항공권(e-ticket)을 반드시 지참해 주세요.</li>
-                                    <li>미팅 장소를 찾기 어려우시면 인솔자에게 연락 주세요.</li>
-                                    <li>본투어 인터내셔날 피켓을 들고 있는 인솔자를 찾아주세요.</li>
+                                    <?php foreach ($defaultNotices as $notice): ?>
+                                        <li><?= h($notice) ?></li>
+                                    <?php endforeach; ?>
                                 </ul>
                             </div>
                         </div>
@@ -166,6 +179,6 @@ $pageTitle = '공항 미팅';
         </div>
     </div>
 
-    <script src="/born/assets/js/user.js"></script>
+    <script src="/assets/js/user.js"></script>
 </body>
 </html>

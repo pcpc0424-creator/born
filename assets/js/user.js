@@ -28,7 +28,7 @@ const BornUser = {
             const data = await response.json();
 
             if (response.status === 401) {
-                window.location.href = '/born/user/index.php?expired=1';
+                window.location.href = '/user/index.php?expired=1';
                 return;
             }
 
@@ -545,10 +545,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // referrer가 같은 도메인이고 /born 경로를 포함하는 경우에만 뒤로가기
             if (document.referrer &&
                 document.referrer.includes(window.location.host) &&
-                document.referrer.includes('/born/')) {
+                document.referrer.includes('/')) {
                 history.back();
             } else {
-                window.location.href = '/born/user/main.php';
+                window.location.href = '/user/main.php';
             }
         });
     });

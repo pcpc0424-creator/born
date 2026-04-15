@@ -19,7 +19,7 @@ if (in_array($extension, $staticExtensions)) {
 switch (true) {
     // 메인 페이지 - 인트로 화면으로 리다이렉트
     case $path === '/' || $path === '':
-        header('Location: /born/user/intro.php');
+        header('Location: /user/intro.php');
         exit;
 
     // 관리자 페이지
@@ -30,7 +30,7 @@ switch (true) {
         if (file_exists($file)) {
             include $file;
         } else {
-            header('Location: /born/admin/index.php');
+            header('Location: /admin/index.php');
         }
         exit;
 
@@ -42,7 +42,7 @@ switch (true) {
         if (file_exists($file)) {
             include $file;
         } else {
-            header('Location: /born/user/index.php');
+            header('Location: /user/index.php');
         }
         exit;
 
@@ -61,11 +61,11 @@ switch (true) {
     // QR 코드/고유 링크로 접근
     case preg_match('/^\/e\/([A-Z0-9]+)$/i', $path, $matches):
         $uniqueCode = strtoupper($matches[1]);
-        header("Location: /born/user/intro.php?code={$uniqueCode}");
+        header("Location: /user/intro.php?code={$uniqueCode}");
         exit;
 
     // 기본 - 인트로 화면으로
     default:
-        header('Location: /born/user/intro.php');
+        header('Location: /user/intro.php');
         exit;
 }

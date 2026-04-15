@@ -267,46 +267,57 @@ function deleteMember(): void {
 function exportMembers(): void {
     $db = db();
     $search = input('search', '');
+    $eventId = input('event_id', '');
 
     $where = "1=1";
     $params = [];
+    $joinEvent = "";
 
     if (!empty($search)) {
-        $where .= " AND (name_ko LIKE ? OR name_en LIKE ? OR phone LIKE ? OR login_id LIKE ?)";
+        $where .= " AND (m.name_ko LIKE ? OR m.name_en LIKE ? OR m.phone LIKE ? OR m.login_id LIKE ?)";
         $searchParam = "%{$search}%";
-        $params = [$searchParam, $searchParam, $searchParam, $searchParam];
+        $params = array_merge($params, [$searchParam, $searchParam, $searchParam, $searchParam]);
+    }
+
+    if (!empty($eventId)) {
+        $joinEvent = "INNER JOIN event_members emf ON emf.member_id = m.id AND emf.event_id = ?";
+        $params[] = (int)$eventId;
     }
 
     $stmt = $db->prepare("
-        SELECT login_id, name_ko, name_en, phone, birth_date, gender, created_at
-        FROM members
+        SELECT DISTINCT m.login_id, m.name_ko, m.name_en, m.phone, m.birth_date, m.gender, m.created_at
+        FROM members m
+        {$joinEvent}
         WHERE {$where}
-        ORDER BY created_at DESC
+        ORDER BY m.created_at DESC
     ");
     $stmt->execute($params);
     $members = $stmt->fetchAll();
 
-    // CSV 형태로 출력 (간단한 엑셀 호환)
     header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
     header('Content-Disposition: attachment; filename="members_' . date('Ymd_His') . '.xls"');
     header('Pragma: no-cache');
     header('Expires: 0');
 
-    echo "\xEF\xBB\xBF"; // UTF-8 BOM
+    echo '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+    echo '<head><meta charset="UTF-8"><style>td,th{mso-number-format:"\@";border:1px solid #ccc;padding:4px 8px;font-size:12px;}th{background:#f0f0f0;font-weight:bold;}</style></head>';
+    echo '<body><table>';
 
-    echo "아이디\t한글이름\t영문이름\t연락처\t생년월일\t성별\t가입일\n";
+    echo '<tr><th>아이디</th><th>한글이름</th><th>영문이름</th><th>성별</th><th>생년월일</th><th>연락처</th><th>가입일</th></tr>';
 
     foreach ($members as $member) {
-        echo implode("\t", [
-            $member['login_id'],
-            $member['name_ko'],
-            $member['name_en'] ?? '',
-            $member['phone'] ? format_phone($member['phone']) : '',
-            $member['birth_date'] ?? '',
-            $member['gender'] ? GENDER_LABELS[$member['gender']] : '',
-            date('Y-m-d H:i', strtotime($member['created_at']))
-        ]) . "\n";
+        echo '<tr>';
+        echo '<td>' . htmlspecialchars($member['login_id']) . '</td>';
+        echo '<td>' . htmlspecialchars($member['name_ko']) . '</td>';
+        echo '<td>' . htmlspecialchars($member['name_en'] ?? '') . '</td>';
+        echo '<td>' . ($member['gender'] ? GENDER_LABELS[$member['gender']] : '') . '</td>';
+        echo '<td>' . htmlspecialchars($member['birth_date'] ?? '') . '</td>';
+        echo '<td>' . ($member['phone'] ? format_phone($member['phone']) : '') . '</td>';
+        echo '<td>' . date('Y-m-d H:i', strtotime($member['created_at'])) . '</td>';
+        echo '</tr>';
     }
+
+    echo '</table></body></html>';
     exit;
 }
 
@@ -329,34 +340,34 @@ function importMembers(): void {
         json_error('지원하지 않는 파일 형식입니다.');
     }
 
-    // CSV 처리 (간단한 구현)
-    $handle = fopen($file['tmp_name'], 'r');
-    if (!$handle) {
-        json_error('파일을 읽을 수 없습니다.');
+    $rows = parseUploadedFile($file['tmp_name'], $extension);
+
+    if (empty($rows)) {
+        json_error('파일에서 데이터를 읽을 수 없습니다. CSV 또는 양식에 맞는 엑셀 파일을 업로드해 주세요.');
     }
 
     $db = db();
     $imported = 0;
     $errors = [];
-    $rowNum = 0;
 
-    // 헤더 스킵
-    fgetcsv($handle);
-
-    while (($row = fgetcsv($handle)) !== false) {
-        $rowNum++;
-
+    foreach ($rows as $rowNum => $row) {
         if (count($row) < 3 || empty(trim($row[0])) || empty(trim($row[2]))) {
             continue;
         }
 
         $loginId = trim($row[0]);
-        $password = trim($row[1]);
+        $password = trim($row[1] ?? '');
         $nameKo = trim($row[2]);
         $nameEn = isset($row[3]) ? trim($row[3]) : null;
-        $phone = isset($row[4]) ? preg_replace('/[^0-9]/', '', trim($row[4])) : null;
+        $gender = isset($row[4]) ? (strtoupper(trim($row[4])) === 'M' || trim($row[4]) === '남성' ? 'M' : (strtoupper(trim($row[4])) === 'F' || trim($row[4]) === '여성' ? 'F' : null)) : null;
         $birthDate = isset($row[5]) ? trim($row[5]) : null;
-        $gender = isset($row[6]) ? (strtoupper(trim($row[6])) === 'M' || trim($row[6]) === '남성' ? 'M' : (strtoupper(trim($row[6])) === 'F' || trim($row[6]) === '여성' ? 'F' : null)) : null;
+        $phone = isset($row[6]) ? preg_replace('/[^0-9]/', '', trim($row[6])) : null;
+
+        // 아이디 형식 검사
+        if (!preg_match('/^[a-zA-Z0-9_]{4,20}$/', $loginId)) {
+            $errors[] = "행 {$rowNum}: 아이디 형식 오류 ({$loginId})";
+            continue;
+        }
 
         // 아이디 중복 체크
         $stmt = $db->prepare("SELECT id FROM members WHERE login_id = ?");
@@ -366,9 +377,8 @@ function importMembers(): void {
             continue;
         }
 
-        // 비밀번호가 없으면 기본값 설정
         if (empty($password)) {
-            $password = $loginId; // 아이디를 기본 비밀번호로
+            $password = $loginId;
         }
 
         try {
@@ -380,9 +390,9 @@ function importMembers(): void {
                 $loginId,
                 password_hash($password, PASSWORD_DEFAULT),
                 $nameKo,
-                $nameEn,
-                $phone,
-                $birthDate,
+                $nameEn ?: null,
+                $phone ?: null,
+                $birthDate ?: null,
                 $gender
             ]);
             $imported++;
@@ -391,13 +401,14 @@ function importMembers(): void {
         }
     }
 
-    fclose($handle);
-
     json_success([
         'imported' => $imported,
         'errors' => $errors
     ], "{$imported}명의 회원이 등록되었습니다.");
 }
+
+// 파일 파싱 공통 함수
+require_once __DIR__ . '/members.php.inc';
 
 /**
  * 엑셀 양식 다운로드
@@ -408,9 +419,12 @@ function downloadTemplate(): void {
     header('Pragma: no-cache');
     header('Expires: 0');
 
-    echo "\xEF\xBB\xBF"; // UTF-8 BOM
-    echo "아이디\t비밀번호\t한글이름\t영문이름\t연락처\t생년월일\t성별\n";
-    echo "hong123\t1234\t홍길동\tHONG GILDONG\t010-1234-5678\t1990-01-01\t남성\n";
-    echo "kim456\t1234\t김철수\tKIM CHEOLSU\t010-9876-5432\t1985-05-15\t남성\n";
+    echo '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+    echo '<head><meta charset="UTF-8"><style>td,th{mso-number-format:"\@";border:1px solid #ccc;padding:4px 8px;font-size:12px;}th{background:#f0f0f0;font-weight:bold;}</style></head>';
+    echo '<body><table>';
+    echo '<tr><th>아이디</th><th>비밀번호</th><th>한글이름</th><th>영문이름</th><th>성별</th><th>생년월일</th><th>연락처</th></tr>';
+    echo '<tr><td>hong123</td><td>1234</td><td>홍길동</td><td>HONG GILDONG</td><td>남성</td><td>1990-01-01</td><td>010-1234-5678</td></tr>';
+    echo '<tr><td>kim456</td><td>1234</td><td>김철수</td><td>KIM CHEOLSU</td><td>남성</td><td>1985-05-15</td><td>010-9876-5432</td></tr>';
+    echo '</table></body></html>';
     exit;
 }

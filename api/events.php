@@ -152,13 +152,17 @@ function createEvent(): void {
     $stmt = $db->prepare("
         INSERT INTO events (
             event_name, start_date, end_date, additional_start_dates, airline,
-            flight_departure, flight_return, flight_time_departure, flight_time_return,
-            departure_airport, arrival_airport, timezone_offset, flight_duration_departure, flight_duration_return,
+            flight_departure, flight_return,
+            flight_time_departure, flight_time_departure_arrival,
+            flight_time_return, flight_time_return_arrival,
+            departure_airport, departure_airport_code, arrival_airport, arrival_airport_code,
+            timezone_offset, flight_duration_departure, flight_duration_return,
             baggage_info, flight_etc,
             client_logo, schedule_url, hotel_url,
             meeting_place, meeting_time, meeting_date, meeting_manager, manager_phone,
-            travel_notice, weather_image, unique_code, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            meeting_notice, travel_notice, departure_checklist, prohibited_items,
+            weather_image, unique_code, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $stmt->execute([
@@ -170,9 +174,13 @@ function createEvent(): void {
         input('flight_departure'),
         input('flight_return'),
         input('flight_time_departure') ?: null,
+        input('flight_time_departure_arrival') ?: null,
         input('flight_time_return') ?: null,
+        input('flight_time_return_arrival') ?: null,
         input('departure_airport', '인천국제공항'),
+        strtoupper(input('departure_airport_code', 'ICN')),
         input('arrival_airport'),
+        strtoupper(input('arrival_airport_code', '')),
         intval(input('timezone_offset', 0)),
         input('flight_duration_departure') ? intval(input('flight_duration_departure')) : null,
         input('flight_duration_return') ? intval(input('flight_duration_return')) : null,
@@ -186,7 +194,10 @@ function createEvent(): void {
         input('meeting_date') ?: null,
         input('meeting_manager'),
         input('manager_phone'),
+        input('meeting_notice'),
         input('travel_notice'),
+        input('departure_checklist'),
+        input('prohibited_items'),
         $weatherImage,
         $uniqueCode,
         input('status', 'active')
@@ -258,12 +269,16 @@ function updateEvent(): void {
     $stmt = $db->prepare("
         UPDATE events SET
             event_name = ?, start_date = ?, end_date = ?, additional_start_dates = ?, airline = ?,
-            flight_departure = ?, flight_return = ?, flight_time_departure = ?, flight_time_return = ?,
-            departure_airport = ?, arrival_airport = ?, timezone_offset = ?, flight_duration_departure = ?, flight_duration_return = ?,
+            flight_departure = ?, flight_return = ?,
+            flight_time_departure = ?, flight_time_departure_arrival = ?,
+            flight_time_return = ?, flight_time_return_arrival = ?,
+            departure_airport = ?, departure_airport_code = ?, arrival_airport = ?, arrival_airport_code = ?,
+            timezone_offset = ?, flight_duration_departure = ?, flight_duration_return = ?,
             baggage_info = ?, flight_etc = ?,
             client_logo = ?, schedule_url = ?, hotel_url = ?,
             meeting_place = ?, meeting_time = ?, meeting_date = ?, meeting_manager = ?, manager_phone = ?,
-            travel_notice = ?, weather_image = ?, status = ?
+            meeting_notice = ?, travel_notice = ?, departure_checklist = ?, prohibited_items = ?,
+            weather_image = ?, status = ?
         WHERE id = ?
     ");
 
@@ -276,9 +291,13 @@ function updateEvent(): void {
         input('flight_departure'),
         input('flight_return'),
         input('flight_time_departure') ?: null,
+        input('flight_time_departure_arrival') ?: null,
         input('flight_time_return') ?: null,
+        input('flight_time_return_arrival') ?: null,
         input('departure_airport', '인천국제공항'),
+        strtoupper(input('departure_airport_code', 'ICN')),
         input('arrival_airport'),
+        strtoupper(input('arrival_airport_code', '')),
         intval(input('timezone_offset', 0)),
         input('flight_duration_departure') ? intval(input('flight_duration_departure')) : null,
         input('flight_duration_return') ? intval(input('flight_duration_return')) : null,
@@ -292,7 +311,10 @@ function updateEvent(): void {
         input('meeting_date') ?: null,
         input('meeting_manager'),
         input('manager_phone'),
+        input('meeting_notice'),
         input('travel_notice'),
+        input('departure_checklist'),
+        input('prohibited_items'),
         $weatherImage,
         input('status', 'active'),
         $id

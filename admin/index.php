@@ -123,7 +123,7 @@ $recentMembers = $stmt->fetchAll();
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">진행 중인 행사</h3>
-            <a href="/born/admin/event-editor.php" class="btn btn-sm btn-outline">전체보기</a>
+            <a href="/admin/event-editor.php" class="btn btn-sm btn-outline">전체보기</a>
         </div>
         <div class="card-body" style="padding: 0;">
             <?php if (empty($recentEvents)): ?>
@@ -146,7 +146,7 @@ $recentMembers = $stmt->fetchAll();
                                 <?php $dday = calculate_dday($event['start_date']); ?>
                                 <tr>
                                     <td>
-                                        <a href="/born/admin/event-editor.php?id=<?= $event['id'] ?>" style="color: var(--gray-900); font-weight: 500;">
+                                        <a href="/admin/event-editor.php?id=<?= $event['id'] ?>" style="color: var(--gray-900); font-weight: 500;">
                                             <?= h($event['event_name']) ?>
                                         </a>
                                     </td>
@@ -174,7 +174,7 @@ $recentMembers = $stmt->fetchAll();
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">최근 가입 회원</h3>
-            <a href="/born/admin/members.php" class="btn btn-sm btn-outline">전체보기</a>
+            <a href="/admin/members.php" class="btn btn-sm btn-outline">전체보기</a>
         </div>
         <div class="card-body" style="padding: 0;">
             <?php if (empty($recentMembers)): ?>
@@ -222,14 +222,14 @@ $recentMembers = $stmt->fetchAll();
     </div>
     <div class="card-body">
         <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <a href="/born/admin/event-editor.php?action=new" class="btn btn-primary">
+            <a href="/admin/event-editor.php?action=new" class="btn btn-primary">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"/>
                     <line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
                 새 행사 등록
             </a>
-            <a href="/born/admin/members.php?action=new" class="btn btn-secondary">
+            <a href="/admin/members.php?action=new" class="btn btn-secondary">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                     <circle cx="8.5" cy="7" r="4"/>
@@ -238,7 +238,7 @@ $recentMembers = $stmt->fetchAll();
                 </svg>
                 회원 추가
             </a>
-            <a href="/born/admin/survey-editor.php?action=new" class="btn btn-secondary">
+            <a href="/admin/survey-editor.php?action=new" class="btn btn-secondary">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14 2 14 8 20 8"/>
@@ -247,7 +247,7 @@ $recentMembers = $stmt->fetchAll();
                 </svg>
                 설문 만들기
             </a>
-            <a href="/born/admin/passport.php" class="btn btn-secondary">
+            <a href="/admin/passport.php" class="btn btn-secondary">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="4" width="18" height="16" rx="2"/>
                     <circle cx="12" cy="10" r="3"/>

@@ -6,6 +6,5 @@
     </linearGradient>
   </defs>
   <rect width="200" height="60" fill="transparent"/>
-  <text x="100" y="38" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="url(#grad)" text-anchor="middle">BORN TOUR</text>
-  <text x="100" y="52" font-family="Arial, sans-serif" font-size="10" fill="#666" text-anchor="middle">INTERNATIONAL</text>
+  <text x="100" y="42" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="url(#grad)" text-anchor="middle">(주)본투어인터내셔날</text>
 </svg>

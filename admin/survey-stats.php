@@ -66,7 +66,7 @@ if (!empty($questions)) {
 <div class="card">
     <div class="card-header">
         <h3 class="card-title">설문 통계 확인하기</h3>
-        <a href="/born/admin/" class="btn btn-sm btn-ghost btn-icon" title="메인으로">
+        <a href="/admin/" class="btn btn-sm btn-ghost btn-icon" title="메인으로">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                 <polyline points="9 22 9 12 15 12 15 22"/>

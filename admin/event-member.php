@@ -25,6 +25,7 @@ $events = $stmt->fetchAll();
 // 행사 참가자 목록
 $eventMembers = [];
 $optionalTours = [];
+$totalDays = 0;
 if ($event) {
     $stmt = $db->prepare("
         SELECT em.*, m.name_ko, m.name_en, m.phone, m.birth_date, m.gender, m.login_id
@@ -40,14 +41,19 @@ if ($event) {
     $stmt = $db->prepare("SELECT id, tour_name FROM optional_tours WHERE event_id = ? AND status = 'active' ORDER BY id");
     $stmt->execute([$eventId]);
     $optionalTours = $stmt->fetchAll();
+
+    // 총 일수 계산
+    $startDate = new DateTime($event['start_date']);
+    $endDate = new DateTime($event['end_date']);
+    $totalDays = (int)$startDate->diff($endDate)->days + 1;
 }
 ?>
 
 <!-- 행사 선택 -->
 <div class="card" style="margin-bottom: 24px;">
     <div class="card-body">
-        <div style="display: flex; gap: 16px; align-items: center;">
-            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+        <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+            <div class="form-group" style="flex: 1; margin-bottom: 0; min-width: 200px;">
                 <select id="event-select" class="form-select" onchange="changeEvent(this.value)">
                     <option value="">행사를 선택하세요</option>
                     <?php foreach ($events as $ev): ?>
@@ -94,109 +100,124 @@ if ($event) {
         <div class="card-header">
             <h3 class="card-title"><?= h($event['event_name']) ?> 참가자 (<?= count($eventMembers) ?>명)</h3>
         </div>
-        <div class="card-body" style="padding: 0;">
-            <div class="table-container">
-                <table class="table" id="event-members-table">
-                    <thead>
+        <div class="card-body" style="padding: 0; overflow-x: auto;">
+            <table class="table" id="event-members-table" style="min-width: <?= 500 + ($totalDays * 80) ?>px;">
+                <thead>
+                    <tr>
+                        <th style="width: 40px; position: sticky; left: 0; background: var(--gray-50); z-index: 2;">
+                            <input type="checkbox" class="check-all">
+                        </th>
+                        <th style="min-width: 100px; position: sticky; left: 40px; background: var(--gray-50); z-index: 2;">이름</th>
+                        <th style="min-width: 90px;">생년월일</th>
+                        <?php if (!empty($optionalTours)): ?>
+                        <th style="min-width: 120px;">선택관광</th>
+                        <?php endif; ?>
+                        <?php for ($d = 1; $d <= $totalDays; $d++): ?>
+                            <th style="min-width: 75px; text-align: center;">버스<br><small style="font-weight:400;color:var(--gray-500);"><?= $d ?>일차</small></th>
+                        <?php endfor; ?>
+                        <th style="min-width: 110px;">연락처</th>
+                        <th style="min-width: 75px;">만찬<br>테이블</th>
+                        <th style="min-width: 75px;">객실</th>
+                        <th style="width: 60px;">관리</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($eventMembers)): ?>
                         <tr>
-                            <th style="width: 40px;">
-                                <input type="checkbox" class="check-all">
-                            </th>
-                            <th>이름</th>
-                            <th>연락처</th>
-                            <th>생년월일</th>
-                            <?php if (!empty($optionalTours)): ?>
-                            <th>선택관광</th>
-                            <?php endif; ?>
-                            <th>버스</th>
-                            <th>만찬장</th>
-                            <th>객실</th>
-                            <th style="width: 100px;">관리</th>
+                            <td colspan="<?= 7 + $totalDays + (!empty($optionalTours) ? 1 : 0) ?>" style="text-align: center; padding: 60px 20px; color: var(--gray-500);">
+                                등록된 참가자가 없습니다.
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($eventMembers)): ?>
-                            <tr>
-                                <td colspan="<?= !empty($optionalTours) ? 9 : 8 ?>" style="text-align: center; padding: 60px 20px; color: var(--gray-500);">
-                                    등록된 참가자가 없습니다.
+                    <?php else: ?>
+                        <?php foreach ($eventMembers as $em):
+                            $memberTourIds = [];
+                            if (!empty($em['optional_tour_ids'])) {
+                                $memberTourIds = json_decode($em['optional_tour_ids'], true) ?: [];
+                            }
+                            // 버스 정보 파싱 (JSON 또는 단순 문자열)
+                            $busData = [];
+                            if (!empty($em['bus_number'])) {
+                                $decoded = json_decode($em['bus_number'], true);
+                                if (is_array($decoded)) {
+                                    $busData = $decoded;
+                                } else {
+                                    // 기존 단순 문자열이면 모든 일차에 동일 적용
+                                    for ($d = 1; $d <= $totalDays; $d++) {
+                                        $busData[(string)$d] = $em['bus_number'];
+                                    }
+                                }
+                            }
+                        ?>
+                            <tr data-id="<?= $em['id'] ?>">
+                                <td style="position: sticky; left: 0; background: white; z-index: 1;">
+                                    <input type="checkbox" class="check-item" value="<?= $em['id'] ?>">
+                                </td>
+                                <td style="position: sticky; left: 40px; background: white; z-index: 1;">
+                                    <div style="font-weight: 600;"><?= h($em['name_ko']) ?></div>
+                                    <?php if ($em['name_en']): ?>
+                                        <div style="font-size: 11px; color: var(--gray-500);"><?= h($em['name_en']) ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <td style="font-size: 13px;"><?= $em['birth_date'] ? date('Y.m.d', strtotime($em['birth_date'])) : '-' ?></td>
+                                <?php if (!empty($optionalTours)): ?>
+                                <td>
+                                    <?php
+                                    $selectedTours = [];
+                                    foreach ($optionalTours as $tour) {
+                                        if (in_array($tour['id'], $memberTourIds)) {
+                                            $selectedTours[] = h($tour['tour_name']);
+                                        }
+                                    }
+                                    if (!empty($selectedTours)):
+                                    ?>
+                                        <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                                            <?php foreach ($selectedTours as $tourName): ?>
+                                                <span class="badge badge-primary" style="font-size: 11px;"><?= $tourName ?></span>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <span style="color: var(--gray-400);">-</span>
+                                    <?php endif; ?>
+                                </td>
+                                <?php endif; ?>
+                                <?php for ($d = 1; $d <= $totalDays; $d++): ?>
+                                    <td>
+                                        <input type="text" class="form-input" style="width: 65px; padding: 5px 8px; font-size: 13px; text-align: center;"
+                                               value="<?= h($busData[(string)$d] ?? '') ?>"
+                                               onchange="updateBusDay(<?= $em['id'] ?>, <?= $d ?>, this.value, this)"
+                                               placeholder="-">
+                                    </td>
+                                <?php endfor; ?>
+                                <td style="font-size: 13px;"><?= $em['phone'] ? format_phone($em['phone']) : '-' ?></td>
+                                <td>
+                                    <input type="text" class="form-input" style="width: 65px; padding: 5px 8px; font-size: 13px; text-align: center;"
+                                           value="<?= h($em['dinner_table'] ?? '') ?>"
+                                           onchange="updateEventMember(<?= $em['id'] ?>, 'dinner_table', this.value)">
+                                </td>
+                                <td>
+                                    <input type="text" class="form-input" style="width: 65px; padding: 5px 8px; font-size: 13px; text-align: center;"
+                                           value="<?= h($em['room_number'] ?? '') ?>"
+                                           onchange="updateEventMember(<?= $em['id'] ?>, 'room_number', this.value)">
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-ghost btn-icon" onclick="removeEventMember(<?= $em['id'] ?>)" title="제거" style="color: var(--error);">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="3 6 5 6 21 6"/>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                        </svg>
+                                    </button>
                                 </td>
                             </tr>
-                        <?php else: ?>
-                            <?php foreach ($eventMembers as $em):
-                                // 참가자의 선택관광 ID 목록 파싱
-                                $memberTourIds = [];
-                                if (!empty($em['optional_tour_ids'])) {
-                                    $memberTourIds = json_decode($em['optional_tour_ids'], true) ?: [];
-                                }
-                            ?>
-                                <tr data-id="<?= $em['id'] ?>">
-                                    <td>
-                                        <input type="checkbox" class="check-item" value="<?= $em['id'] ?>">
-                                    </td>
-                                    <td>
-                                        <div style="font-weight: 600;"><?= h($em['name_ko']) ?></div>
-                                        <?php if ($em['name_en']): ?>
-                                            <div style="font-size: 12px; color: var(--gray-500);"><?= h($em['name_en']) ?></div>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td><?= $em['phone'] ? format_phone($em['phone']) : '-' ?></td>
-                                    <td><?= $em['birth_date'] ? date('Y.m.d', strtotime($em['birth_date'])) : '-' ?></td>
-                                    <?php if (!empty($optionalTours)): ?>
-                                    <td>
-                                        <?php
-                                        $selectedTours = [];
-                                        foreach ($optionalTours as $tour) {
-                                            if (in_array($tour['id'], $memberTourIds)) {
-                                                $selectedTours[] = h($tour['tour_name']);
-                                            }
-                                        }
-                                        if (!empty($selectedTours)):
-                                        ?>
-                                            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                                                <?php foreach ($selectedTours as $tourName): ?>
-                                                    <span class="badge badge-primary" style="font-size: 11px;"><?= $tourName ?></span>
-                                                <?php endforeach; ?>
-                                            </div>
-                                        <?php else: ?>
-                                            <span style="color: var(--gray-400);">-</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <?php endif; ?>
-                                    <td>
-                                        <input type="text" class="form-input" style="width: 80px; padding: 6px 10px; font-size: 13px;"
-                                               value="<?= h($em['bus_number'] ?? '') ?>"
-                                               onchange="updateEventMember(<?= $em['id'] ?>, 'bus_number', this.value)">
-                                    </td>
-                                    <td>
-                                        <input type="text" class="form-input" style="width: 80px; padding: 6px 10px; font-size: 13px;"
-                                               value="<?= h($em['dinner_table'] ?? '') ?>"
-                                               onchange="updateEventMember(<?= $em['id'] ?>, 'dinner_table', this.value)">
-                                    </td>
-                                    <td>
-                                        <input type="text" class="form-input" style="width: 80px; padding: 6px 10px; font-size: 13px;"
-                                               value="<?= h($em['room_number'] ?? '') ?>"
-                                               onchange="updateEventMember(<?= $em['id'] ?>, 'room_number', this.value)">
-                                    </td>
-                                    <td>
-                                        <button type="button" class="btn btn-sm btn-ghost btn-icon" onclick="removeEventMember(<?= $em['id'] ?>)" title="제거" style="color: var(--error);">
-                                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                                <polyline points="3 6 5 6 21 6"/>
-                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                            </svg>
-                                        </button>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
         <?php if (!empty($eventMembers)): ?>
             <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center;">
                 <button type="button" class="btn btn-danger btn-sm" onclick="removeSelectedMembers()">선택 삭제</button>
                 <span style="color: var(--gray-500); font-size: 13px;">
-                    ※ 버스, 만찬장, 객실 정보는 입력 시 자동 저장됩니다.
+                    ※ 버스, 만찬테이블, 객실 정보는 입력 시 자동 저장됩니다.
                 </span>
             </div>
         <?php endif; ?>
@@ -231,7 +252,6 @@ if ($event) {
             <div class="form-group">
                 <input type="text" class="form-input" id="member-search" placeholder="이름 또는 연락처로 회원 검색...">
             </div>
-
             <div id="member-search-results" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--gray-200); border-radius: var(--radius-md);">
                 <div style="padding: 40px 20px; text-align: center; color: var(--gray-500);">
                     검색어를 입력하세요
@@ -258,10 +278,9 @@ if ($event) {
         <div class="modal-body">
             <div style="background: var(--info-light); color: var(--info); padding: 16px; border-radius: var(--radius-md); margin-bottom: 20px; font-size: 14px;">
                 <strong>엑셀 양식 안내</strong><br>
-                이름, 생년월일, 버스, 만찬장, 객실 순으로 작성해주세요.<br>
+                이름, 생년월일, 버스, 만찬테이블, 객실 순으로 작성해주세요.<br>
                 이름+생년월일로 기존 회원과 자동 매칭됩니다.
             </div>
-
             <form id="import-form" enctype="multipart/form-data">
                 <div class="form-group">
                     <label class="form-label">엑셀 파일 선택</label>
@@ -289,17 +308,49 @@ if ($event) {
 .member-search-item:last-child {
     border-bottom: none;
 }
+/* 스티키 컬럼 그림자 */
+th[style*="sticky"], td[style*="sticky"] {
+    box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+}
 </style>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
 
 <script>
 const eventId = <?= $eventId ?: 'null' ?>;
+const totalDays = <?= $totalDays ?>;
 
-// 행사 변경
+// 행사별 버스 데이터 캐시 (행 ID => {일차: 값})
+const busCache = {};
+<?php if (!empty($eventMembers)): ?>
+<?php foreach ($eventMembers as $em): ?>
+busCache[<?= $em['id'] ?>] = <?= $em['bus_number'] && json_decode($em['bus_number']) !== null ? $em['bus_number'] : '{}' ?>;
+<?php endforeach; ?>
+<?php endif; ?>
+
 function changeEvent(id) {
     if (id) {
-        window.location.href = `/born/admin/event-member.php?event_id=${id}`;
+        window.location.href = `/admin/event-member.php?event_id=${id}`;
+    }
+}
+
+// 일차별 버스 업데이트
+async function updateBusDay(emId, day, value, inputEl) {
+    if (!busCache[emId]) busCache[emId] = {};
+    busCache[emId][String(day)] = value;
+
+    try {
+        await BornAdmin.api('/api/event-members.php', {
+            method: 'POST',
+            body: {
+                action: 'update',
+                id: emId,
+                field: 'bus_number',
+                value: JSON.stringify(busCache[emId])
+            }
+        });
+    } catch (error) {
+        BornAdmin.toast(error.message, 'error');
     }
 }
 
@@ -314,7 +365,7 @@ document.getElementById('member-search')?.addEventListener('input', BornAdmin.de
     }
 
     try {
-        const response = await BornAdmin.api(`/born/api/members.php?action=list&search=${encodeURIComponent(query)}&per_page=20`);
+        const response = await BornAdmin.api(`/api/members.php?action=list&search=${encodeURIComponent(query)}&per_page=20`);
         const members = response.data.members;
 
         if (members.length === 0) {
@@ -338,18 +389,12 @@ document.getElementById('member-search')?.addEventListener('input', BornAdmin.de
     }
 }, 300));
 
-// 참가자 추가
 async function addMemberToEvent(memberId) {
     try {
-        await BornAdmin.api('/born/api/event-members.php', {
+        await BornAdmin.api('/api/event-members.php', {
             method: 'POST',
-            body: {
-                action: 'add',
-                event_id: eventId,
-                member_id: memberId
-            }
+            body: { action: 'add', event_id: eventId, member_id: memberId }
         });
-
         BornAdmin.toast('참가자가 추가되었습니다.', 'success');
         BornAdmin.closeModal('add-member-modal');
         location.reload();
@@ -358,33 +403,24 @@ async function addMemberToEvent(memberId) {
     }
 }
 
-// 참가자 정보 수정
 async function updateEventMember(id, field, value) {
     try {
-        await BornAdmin.api('/born/api/event-members.php', {
+        await BornAdmin.api('/api/event-members.php', {
             method: 'POST',
-            body: {
-                action: 'update',
-                id: id,
-                field: field,
-                value: value
-            }
+            body: { action: 'update', id: id, field: field, value: value }
         });
     } catch (error) {
         BornAdmin.toast(error.message, 'error');
     }
 }
 
-// 참가자 제거
 async function removeEventMember(id) {
     if (!await BornAdmin.confirmDelete('이 참가자')) return;
-
     try {
-        await BornAdmin.api('/born/api/event-members.php', {
+        await BornAdmin.api('/api/event-members.php', {
             method: 'POST',
             body: { action: 'remove', id: id }
         });
-
         BornAdmin.toast('참가자가 제거되었습니다.', 'success');
         document.querySelector(`tr[data-id="${id}"]`).remove();
     } catch (error) {
@@ -392,22 +428,18 @@ async function removeEventMember(id) {
     }
 }
 
-// 선택 삭제
 async function removeSelectedMembers() {
     const ids = BornAdmin.getSelectedIds('event-members-table');
     if (ids.length === 0) {
         BornAdmin.toast('삭제할 참가자를 선택하세요.', 'warning');
         return;
     }
-
     if (!await BornAdmin.confirmDelete(`${ids.length}명의 참가자`)) return;
-
     try {
-        await BornAdmin.api('/born/api/event-members.php', {
+        await BornAdmin.api('/api/event-members.php', {
             method: 'POST',
             body: { action: 'remove_multiple', ids: ids }
         });
-
         BornAdmin.toast('삭제되었습니다.', 'success');
         location.reload();
     } catch (error) {
@@ -415,12 +447,10 @@ async function removeSelectedMembers() {
     }
 }
 
-// 엑셀 다운로드
 function exportEventMembers() {
-    window.location.href = `/born/api/event-members.php?action=export&event_id=${eventId}`;
+    window.location.href = `/api/event-members.php?action=export&event_id=${eventId}`;
 }
 
-// 엑셀 업로드
 async function importEventMembers() {
     const fileInput = document.getElementById('excel-file');
     if (!fileInput.files.length) {
@@ -434,11 +464,10 @@ async function importEventMembers() {
     formData.append('excel_file', fileInput.files[0]);
 
     try {
-        const response = await BornAdmin.api('/born/api/event-members.php', {
+        const response = await BornAdmin.api('/api/event-members.php', {
             method: 'POST',
             body: formData
         });
-
         BornAdmin.toast(`${response.data.imported}명이 등록/매칭되었습니다.`, 'success');
         BornAdmin.closeModal('import-modal');
         setTimeout(() => location.reload(), 500);
@@ -447,8 +476,7 @@ async function importEventMembers() {
     }
 }
 
-// 테이블 선택 초기화
 BornAdmin.initTableSelect('event-members-table');
 </script>
-</body>
-</html>
+</content>
+</invoke>

@@ -249,7 +249,7 @@ function openNoticeModal() {
 
 async function editNotice(id) {
     try {
-        const response = await BornAdmin.api(`/born/api/notices.php?action=get&id=${id}`);
+        const response = await BornAdmin.api(`/api/notices.php?action=get&id=${id}`);
         const notice = response.data;
 
         document.getElementById('notice-modal-title').textContent = '<?= $category === 'notice' ? '공지사항' : 'FAQ' ?> 수정';
@@ -270,7 +270,7 @@ async function saveNotice(e) {
     data.action = data.id ? 'update' : 'create';
 
     try {
-        await BornAdmin.api('/born/api/notices.php', { method: 'POST', body: data });
+        await BornAdmin.api('/api/notices.php', { method: 'POST', body: data });
         BornAdmin.toast('저장되었습니다.', 'success');
         BornAdmin.closeModal('notice-modal');
         setTimeout(() => location.reload(), 500);
@@ -283,7 +283,7 @@ async function deleteNotice(id) {
     if (!await BornAdmin.confirmDelete()) return;
 
     try {
-        await BornAdmin.api('/born/api/notices.php', { method: 'POST', body: { action: 'delete', id } });
+        await BornAdmin.api('/api/notices.php', { method: 'POST', body: { action: 'delete', id } });
         BornAdmin.toast('삭제되었습니다.', 'success');
         document.querySelector(`tr[data-id="${id}"]`).remove();
     } catch (error) {
@@ -293,7 +293,7 @@ async function deleteNotice(id) {
 
 async function updateOrder(id, order) {
     try {
-        await BornAdmin.api('/born/api/notices.php', { method: 'POST', body: { action: 'update_order', id, sort_order: order } });
+        await BornAdmin.api('/api/notices.php', { method: 'POST', body: { action: 'update_order', id, sort_order: order } });
     } catch (error) {
         BornAdmin.toast(error.message, 'error');
     }

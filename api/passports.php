@@ -22,6 +22,9 @@ switch ($action) {
     case 'download_images': downloadPassportImages(); break;
     case 'download_single': downloadSinglePassport(); break;
     case 'admin_upload': adminUploadPassport(); break;
+    case 'admin_edit': adminEditPassport(); break;
+    case 'delete': deletePassport(); break;
+    case 'update_visa': updateVisa(); break;
     default: json_error('잘못된 요청입니다.', 400);
 }
 
@@ -40,14 +43,16 @@ function uploadPassport(): void {
     $expiryDate = input('expiry_date');
     $phone = input('phone');
 
-    if (empty($nameKo) || empty($nameEn) || empty($passportNo)) {
-        json_error('필수 정보를 입력해주세요.');
+    $ssnBack = input('ssn_back');
+
+    if (empty($nameKo) || empty($nameEn) || empty($gender) || empty($birthDate) || empty($passportNo) || empty($expiryDate) || empty($phone)) {
+        json_error('필수 정보를 모두 입력해주세요.');
     }
 
     // 암호화
     $birthDateEncrypted = encrypt_sensitive($birthDate);
     $passportNoEncrypted = encrypt_sensitive($passportNo);
-    $ssnBackEncrypted = input('ssn_back') ? encrypt_sensitive(input('ssn_back')) : null;
+    $ssnBackEncrypted = $ssnBack ? encrypt_sensitive($ssnBack) : null;
 
     // 이미지 업로드
     $passportImage = null;
@@ -62,7 +67,20 @@ function uploadPassport(): void {
             } else {
                 $passportImage = $result['filename'];
             }
+        } else {
+            json_error($result['error'] ?? '파일 업로드에 실패했습니다.');
         }
+    } elseif (isset($_FILES['passport_image']) && $_FILES['passport_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+        // 파일 선택했으나 업로드 실패 (크기 초과 등)
+        $uploadErrors = [
+            UPLOAD_ERR_INI_SIZE => '파일 크기가 서버 제한을 초과했습니다.',
+            UPLOAD_ERR_FORM_SIZE => '파일 크기가 제한을 초과했습니다.',
+            UPLOAD_ERR_PARTIAL => '파일이 일부만 업로드되었습니다.',
+            UPLOAD_ERR_NO_TMP_DIR => '임시 폴더가 없습니다.',
+            UPLOAD_ERR_CANT_WRITE => '디스크에 쓸 수 없습니다.',
+        ];
+        $errCode = $_FILES['passport_image']['error'];
+        json_error($uploadErrors[$errCode] ?? '파일 업로드 중 오류가 발생했습니다.');
     }
 
     $db = db();
@@ -85,7 +103,7 @@ function uploadPassport(): void {
             WHERE id = ?");
         $stmt->execute([
             $nameKo, $nameEn, $gender, $birthDateEncrypted,
-            $passportNoEncrypted, $ssnBackEncrypted, $expiryDate ?: null, $phone,
+            $passportNoEncrypted, $ssnBackEncrypted, $expiryDate, $phone,
             $passportImage, $existing['id']
         ]);
     } else {
@@ -95,7 +113,7 @@ function uploadPassport(): void {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $user['id'], $user['event_id'], $nameKo, $nameEn, $gender, $birthDateEncrypted,
-            $passportNoEncrypted, $ssnBackEncrypted, $expiryDate ?: null, $phone, $passportImage
+            $passportNoEncrypted, $ssnBackEncrypted, $expiryDate, $phone, $passportImage
         ]);
     }
 
@@ -141,15 +159,26 @@ function getPassportImage(): void {
 
     $imagePath = UPLOAD_PASSPORTS . '/' . $passport['passport_image'];
 
+    if (!file_exists($imagePath)) {
+        http_response_code(404);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => '파일이 존재하지 않습니다.']);
+        exit;
+    }
+
     // 암호화된 파일인 경우 복호화
     if (strpos($passport['passport_image'], 'enc_') === 0) {
         $decrypted = decrypt_file($imagePath);
         if ($decrypted === false) {
             http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => '파일 복호화에 실패했습니다.']);
             exit;
         }
 
-        header('Content-Type: image/jpeg');
+        $ext = strtolower(pathinfo($passport['passport_image'], PATHINFO_EXTENSION));
+        $mimeTypes = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif'];
+        header('Content-Type: ' . ($mimeTypes[$ext] ?? 'image/jpeg'));
         echo $decrypted;
     } else {
         // 일반 파일
@@ -178,22 +207,29 @@ function exportPassports(): void {
 
     header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
     header('Content-Disposition: attachment; filename="passports_' . date('Ymd_His') . '.xls"');
-    echo "\xEF\xBB\xBF";
+    header('Pragma: no-cache');
+    header('Expires: 0');
 
-    echo "한글이름\t영문이름\t성별\t생년월일\t여권번호\t만료일\t연락처\t제출일\n";
+    echo '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+    echo '<head><meta charset="UTF-8"><style>td,th{mso-number-format:"\@";border:1px solid #ccc;padding:4px 8px;font-size:12px;}th{background:#f0f0f0;font-weight:bold;}</style></head>';
+    echo '<body><table>';
+    echo '<tr><th>한글이름</th><th>영문이름</th><th>성별</th><th>생년월일</th><th>여권번호</th><th>만료일</th><th>연락처</th><th>비자</th><th>제출일</th></tr>';
 
     foreach ($passports as $p) {
-        echo implode("\t", [
-            $p['name_ko'],
-            $p['name_en'],
-            $p['gender'] ? GENDER_LABELS[$p['gender']] : '',
-            decrypt_sensitive($p['birth_date_encrypted']),
-            decrypt_sensitive($p['passport_no_encrypted']),
-            $p['expiry_date'] ?? '',
-            $p['phone'] ?? '',
-            date('Y-m-d H:i', strtotime($p['created_at']))
-        ]) . "\n";
+        echo '<tr>';
+        echo '<td>' . htmlspecialchars($p['name_ko'] ?? '') . '</td>';
+        echo '<td>' . htmlspecialchars($p['name_en'] ?? '') . '</td>';
+        echo '<td>' . ($p['gender'] ? GENDER_LABELS[$p['gender']] : '') . '</td>';
+        echo '<td>' . htmlspecialchars(decrypt_sensitive($p['birth_date_encrypted']) ?? '') . '</td>';
+        echo '<td>' . htmlspecialchars(decrypt_sensitive($p['passport_no_encrypted']) ?? '') . '</td>';
+        echo '<td>' . htmlspecialchars($p['expiry_date'] ?? '') . '</td>';
+        echo '<td>' . htmlspecialchars($p['phone'] ?? '') . '</td>';
+        echo '<td>' . ($p['visa_status'] ?? 'N') . '</td>';
+        echo '<td>' . date('Y-m-d H:i', strtotime($p['created_at'])) . '</td>';
+        echo '</tr>';
     }
+
+    echo '</table></body></html>';
     exit;
 }
 
@@ -281,6 +317,11 @@ function downloadSinglePassport(): void {
     $ext = pathinfo($passport['passport_image'], PATHINFO_EXTENSION);
     $filename = $passport['name_ko'] . '_여권사본.' . $ext;
 
+    if (!file_exists($imagePath)) {
+        http_response_code(404);
+        die('여권사본 파일이 존재하지 않습니다.');
+    }
+
     // 암호화된 파일인 경우 복호화
     if (strpos($passport['passport_image'], 'enc_') === 0) {
         $decrypted = decrypt_file($imagePath);
@@ -365,4 +406,102 @@ function adminUploadPassport(): void {
     }
 
     json_success(null, '여권사본이 업로드되었습니다.');
+}
+
+/**
+ * 관리자 여권 정보 수정
+ */
+function adminEditPassport(): void {
+    require_admin_auth();
+    if (!is_post()) json_error('잘못된 요청입니다.', 405);
+
+    $id = input('id');
+    $nameKo = input('name_ko');
+    $nameEn = input('name_en');
+    $gender = input('gender');
+    $birthDate = input('birth_date');
+    $passportNo = input('passport_no');
+    $expiryDate = input('expiry_date');
+    $phone = input('phone');
+
+    if (empty($id) || empty($nameKo) || empty($passportNo)) {
+        json_error('한글이름과 여권번호는 필수입니다.');
+    }
+
+    $birthDateEncrypted = encrypt_sensitive($birthDate);
+    $passportNoEncrypted = encrypt_sensitive($passportNo);
+
+    $db = db();
+
+    $stmt = $db->prepare("SELECT id FROM passports WHERE id = ?");
+    $stmt->execute([$id]);
+    if (!$stmt->fetch()) {
+        json_error('여권 정보를 찾을 수 없습니다.', 404);
+    }
+
+    $stmt = $db->prepare("UPDATE passports SET
+        name_ko = ?, name_en = ?, gender = ?, birth_date_encrypted = ?,
+        passport_no_encrypted = ?, expiry_date = ?, phone = ?, updated_at = NOW()
+        WHERE id = ?");
+    $stmt->execute([
+        $nameKo, $nameEn ?: null, $gender ?: null, $birthDateEncrypted,
+        $passportNoEncrypted, $expiryDate ?: null, $phone ?: null, $id
+    ]);
+
+    json_success(null, '여권 정보가 수정되었습니다.');
+}
+
+/**
+ * 여권사본 삭제
+ */
+function deletePassport(): void {
+    require_admin_auth();
+    if (!is_post()) json_error('잘못된 요청입니다.', 405);
+
+    $id = input('id');
+    if (empty($id)) {
+        json_error('여권 ID가 필요합니다.');
+    }
+
+    $db = db();
+
+    $stmt = $db->prepare("SELECT id, passport_image FROM passports WHERE id = ?");
+    $stmt->execute([$id]);
+    $passport = $stmt->fetch();
+
+    if (!$passport) {
+        json_error('여권 정보를 찾을 수 없습니다.', 404);
+    }
+
+    // 이미지 파일 삭제
+    if ($passport['passport_image']) {
+        delete_file(UPLOAD_PASSPORTS . '/' . $passport['passport_image']);
+    }
+
+    // DB 삭제
+    $stmt = $db->prepare("DELETE FROM passports WHERE id = ?");
+    $stmt->execute([$id]);
+
+    json_success(null, '여권사본이 삭제되었습니다.');
+}
+
+/**
+ * 비자 상태 변경
+ */
+function updateVisa(): void {
+    require_admin_auth();
+    if (!is_post()) json_error('잘못된 요청입니다.', 405);
+
+    $id = input('id');
+    $visaStatus = input('visa_status');
+
+    if (empty($id) || !in_array($visaStatus, ['Y', 'N'])) {
+        json_error('잘못된 요청입니다.');
+    }
+
+    $db = db();
+    $stmt = $db->prepare("UPDATE passports SET visa_status = ? WHERE id = ?");
+    $stmt->execute([$visaStatus, $id]);
+
+    json_success(null, '비자 상태가 변경되었습니다.');
 }

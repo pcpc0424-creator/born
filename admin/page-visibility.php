@@ -104,13 +104,13 @@ const eventId = <?= $eventId ?: 'null' ?>;
 
 function changeEvent(id) {
     if (id) {
-        window.location.href = `/born/admin/page-visibility.php?event_id=${id}`;
+        window.location.href = `/admin/page-visibility.php?event_id=${id}`;
     }
 }
 
 async function updateVisibility(page, visible) {
     try {
-        await BornAdmin.api('/born/api/page-visibility.php', {
+        await BornAdmin.api('/api/page-visibility.php', {
             method: 'POST',
             body: {
                 action: 'update',

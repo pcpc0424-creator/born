@@ -10,7 +10,7 @@ $user = get_logged_in_user();
 $visibility = get_page_visibility($user['event_id']);
 
 if (!$visibility['reservation']) {
-    redirect('/born/user/main.php');
+    redirect('/user/main.php');
 }
 
 $db = db();
@@ -47,9 +47,9 @@ $pageTitle = '예약 상세';
     <meta name="theme-color" content="#6dc5d1">
     <title><?= $pageTitle ?> - 본투어</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css">
-    <link rel="stylesheet" href="/born/assets/css/animations.css">
-    <link rel="stylesheet" href="/born/assets/css/user.css">
-    <link rel="stylesheet" href="/born/assets/css/user-pc.css">
+    <link rel="stylesheet" href="/assets/css/animations.css">
+    <link rel="stylesheet" href="/assets/css/user.css">
+    <link rel="stylesheet" href="/assets/css/user-pc.css">
 </head>
 <body>
     <div class="phone-frame">
@@ -133,19 +133,19 @@ $pageTitle = '예약 상세';
                                 </div>
                                 <div class="info-card-body">
                                     <div class="assignment-grid">
-                                        <?php if ($eventMember['bus_number']): ?>
-                                            <div class="assignment-item">
-                                                <div class="assignment-icon">
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                        <path d="M8 6v6m4-6v6m4-6v6M3 14h18M3 18h18M5 22h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z"/>
-                                                    </svg>
-                                                </div>
-                                                <div class="assignment-info">
-                                                    <span class="assignment-label">버스</span>
-                                                    <span class="assignment-value"><?= h($eventMember['bus_number']) ?>호차</span>
-                                                </div>
-                                            </div>
-                                        <?php endif; ?>
+                                        <?php
+                                        $busData = [];
+                                        $hasBus = false;
+                                        if (!empty($eventMember['bus_number'])) {
+                                            $decoded = json_decode($eventMember['bus_number'], true);
+                                            if (is_array($decoded)) {
+                                                $busData = array_filter($decoded);
+                                                $hasBus = !empty($busData);
+                                            } else {
+                                                $hasBus = true;
+                                            }
+                                        }
+                                        ?>
 
                                         <?php if ($eventMember['room_number']): ?>
                                             <div class="assignment-item">
@@ -172,14 +172,38 @@ $pageTitle = '예약 상세';
                                                     </svg>
                                                 </div>
                                                 <div class="assignment-info">
-                                                    <span class="assignment-label">만찬 테이블</span>
+                                                    <span class="assignment-label">만찬<br>테이블</span>
                                                     <span class="assignment-value"><?= h($eventMember['dinner_table']) ?></span>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+
+                                        <?php if ($hasBus): ?>
+                                            <div class="assignment-item full-width">
+                                                <div class="assignment-icon">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M8 6v6m4-6v6m4-6v6M3 14h18M3 18h18M5 22h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z"/>
+                                                    </svg>
+                                                </div>
+                                                <div class="assignment-info">
+                                                    <span class="assignment-label">버스</span>
+                                                    <span class="assignment-value"><?php
+                                                        if (!empty($busData)) {
+                                                            $parts = [];
+                                                            foreach ($busData as $day => $bus) {
+                                                                if ($bus) $parts[] = $day . '일차: ' . h($bus) . '호차';
+                                                            }
+                                                            echo implode('<br>', $parts);
+                                                        } else {
+                                                            echo h($eventMember['bus_number']) . '호차';
+                                                        }
+                                                    ?></span>
                                                 </div>
                                             </div>
                                         <?php endif; ?>
                                     </div>
 
-                                    <?php if (!$eventMember['bus_number'] && !$eventMember['room_number'] && !$eventMember['dinner_table']): ?>
+                                    <?php if (!$hasBus && !$eventMember['room_number'] && !$eventMember['dinner_table']): ?>
                                         <p class="no-data">배정 정보가 아직 등록되지 않았습니다.</p>
                                     <?php endif; ?>
                                 </div>
@@ -247,6 +271,6 @@ $pageTitle = '예약 상세';
         </div>
     </div>
 
-    <script src="/born/assets/js/user.js"></script>
+    <script src="/assets/js/user.js"></script>
 </body>
 </html>

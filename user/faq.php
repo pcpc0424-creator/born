@@ -10,14 +10,14 @@ $user = get_logged_in_user();
 $visibility = get_page_visibility($user['event_id']);
 
 if (!$visibility['faq']) {
-    redirect('/born/user/main.php');
+    redirect('/user/main.php');
 }
 
 $db = db();
 
 // FAQ 조회
-$stmt = $db->prepare("SELECT * FROM notices WHERE category = 'faq' ORDER BY sort_order ASC, created_at DESC");
-$stmt->execute();
+$stmt = $db->prepare("SELECT * FROM notices WHERE category = 'faq' AND event_id = ? ORDER BY sort_order ASC, created_at DESC");
+$stmt->execute([$user['event_id']]);
 $faqs = $stmt->fetchAll();
 
 // 행사 정보 (인솔자 연락처)
@@ -35,9 +35,9 @@ $pageTitle = '문의하기';
     <meta name="theme-color" content="#6dc5d1">
     <title><?= $pageTitle ?> - 본투어</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css">
-    <link rel="stylesheet" href="/born/assets/css/animations.css">
-    <link rel="stylesheet" href="/born/assets/css/user.css">
-    <link rel="stylesheet" href="/born/assets/css/user-pc.css">
+    <link rel="stylesheet" href="/assets/css/animations.css">
+    <link rel="stylesheet" href="/assets/css/user.css">
+    <link rel="stylesheet" href="/assets/css/user-pc.css">
 </head>
 <body>
     <div class="phone-frame">
@@ -103,6 +103,6 @@ $pageTitle = '문의하기';
         </div>
     </div>
 
-    <script src="/born/assets/js/user.js"></script>
+    <script src="/assets/js/user.js"></script>
 </body>
 </html>

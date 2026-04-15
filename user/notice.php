@@ -10,7 +10,7 @@ $user = get_logged_in_user();
 $visibility = get_page_visibility($user['event_id']);
 
 if (!$visibility['notice']) {
-    redirect('/born/user/main.php');
+    redirect('/user/main.php');
 }
 
 $db = db();
@@ -28,9 +28,9 @@ $pageTitle = '여행 전 유의사항';
     <meta name="theme-color" content="#6dc5d1">
     <title><?= $pageTitle ?> - 본투어</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css">
-    <link rel="stylesheet" href="/born/assets/css/animations.css">
-    <link rel="stylesheet" href="/born/assets/css/user.css">
-    <link rel="stylesheet" href="/born/assets/css/user-pc.css">
+    <link rel="stylesheet" href="/assets/css/animations.css">
+    <link rel="stylesheet" href="/assets/css/user.css">
+    <link rel="stylesheet" href="/assets/css/user-pc.css">
 </head>
 <body>
     <div class="phone-frame">
@@ -68,80 +68,81 @@ $pageTitle = '여행 전 유의사항';
                             </div>
                         <?php endif; ?>
 
-                        <!-- 기본 유의사항 -->
+                        <!-- 날씨 정보 -->
+                        <?php if (!empty($event['weather_image'])): ?>
+                            <div class="info-card page-enter" style="animation-delay: 0.05s;">
+                                <div class="info-card-header">
+                                    <h3>현지 날씨</h3>
+                                </div>
+                                <div class="info-card-body" style="padding: 0;">
+                                    <img src="/uploads/weather/<?= h($event['weather_image']) ?>" alt="현지 날씨"
+                                         style="width: 100%; display: block; border-radius: 0 0 16px 16px;">
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
+                        <!-- 출국 준비물 -->
+                        <?php
+                        $checklistItems = [];
+                        if (!empty($event['departure_checklist'])) {
+                            $checklistItems = array_filter(array_map('trim', explode("\n", $event['departure_checklist'])));
+                        }
+                        if (empty($checklistItems)) {
+                            $checklistItems = [
+                                '여권 (유효기간 6개월 이상)',
+                                '항공권 (e-ticket)',
+                                '여행자보험 가입증명서',
+                                '현지 통화 또는 신용카드',
+                                '상비약 (개인 복용약)',
+                                '휴대폰 충전기 및 어댑터',
+                            ];
+                        }
+                        ?>
                         <div class="info-card page-enter" style="animation-delay: 0.1s;">
                             <div class="info-card-header">
                                 <h3>출국 준비물</h3>
                             </div>
                             <div class="info-card-body">
                                 <ul class="checklist">
-                                    <li>
-                                        <span class="check-icon">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <polyline points="20 6 9 17 4 12"/>
-                                            </svg>
-                                        </span>
-                                        <span>여권 (유효기간 6개월 이상)</span>
-                                    </li>
-                                    <li>
-                                        <span class="check-icon">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <polyline points="20 6 9 17 4 12"/>
-                                            </svg>
-                                        </span>
-                                        <span>항공권 (e-ticket)</span>
-                                    </li>
-                                    <li>
-                                        <span class="check-icon">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <polyline points="20 6 9 17 4 12"/>
-                                            </svg>
-                                        </span>
-                                        <span>여행자보험 가입증명서</span>
-                                    </li>
-                                    <li>
-                                        <span class="check-icon">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <polyline points="20 6 9 17 4 12"/>
-                                            </svg>
-                                        </span>
-                                        <span>현지 통화 또는 신용카드</span>
-                                    </li>
-                                    <li>
-                                        <span class="check-icon">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <polyline points="20 6 9 17 4 12"/>
-                                            </svg>
-                                        </span>
-                                        <span>상비약 (개인 복용약)</span>
-                                    </li>
-                                    <li>
-                                        <span class="check-icon">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <polyline points="20 6 9 17 4 12"/>
-                                            </svg>
-                                        </span>
-                                        <span>휴대폰 충전기 및 어댑터</span>
-                                    </li>
+                                    <?php foreach ($checklistItems as $item): ?>
+                                        <li>
+                                            <span class="check-icon">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <polyline points="20 6 9 17 4 12"/>
+                                                </svg>
+                                            </span>
+                                            <span><?= h($item) ?></span>
+                                        </li>
+                                    <?php endforeach; ?>
                                 </ul>
                             </div>
                         </div>
 
                         <!-- 기내 반입 금지 물품 -->
+                        <?php
+                        $prohibitedItems = [];
+                        if (!empty($event['prohibited_items'])) {
+                            $prohibitedItems = array_filter(array_map('trim', explode("\n", $event['prohibited_items'])));
+                        }
+                        if (empty($prohibitedItems)) {
+                            $prohibitedItems = [
+                                '액체류 100ml 초과 (기내 반입 불가)',
+                                '라이터, 성냥 (1인 1개만 소지 가능)',
+                                '날카로운 물품 (칼, 가위 등)',
+                                '보조배터리 160Wh 초과',
+                            ];
+                        }
+                        ?>
                         <div class="info-card page-enter" style="animation-delay: 0.2s;">
                             <div class="info-card-header">
                                 <h3>기내 반입 금지 물품</h3>
                             </div>
                             <div class="info-card-body">
                                 <ul class="warning-list">
-                                    <li>액체류 100ml 초과 (기내 반입 불가)</li>
-                                    <li>라이터, 성냥 (1인 1개만 소지 가능)</li>
-                                    <li>날카로운 물품 (칼, 가위 등)</li>
-                                    <li>보조배터리 160Wh 초과</li>
+                                    <?php foreach ($prohibitedItems as $item): ?>
+                                        <li><?= h($item) ?></li>
+                                    <?php endforeach; ?>
                                 </ul>
-                                <p class="warning-note">
-                                    * 액체류는 100ml 이하 용기에 담아 1L 투명 비닐백에 보관하세요.
-                                </p>
                             </div>
                         </div>
 
@@ -191,6 +192,6 @@ $pageTitle = '여행 전 유의사항';
         </div>
     </div>
 
-    <script src="/born/assets/js/user.js"></script>
+    <script src="/assets/js/user.js"></script>
 </body>
 </html>

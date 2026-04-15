@@ -164,7 +164,8 @@ function calculate_dday(string $targetDate): array {
     } elseif ($days > 0) {
         return ['text' => "D-{$days}", 'days' => $days, 'isPast' => false];
     } else {
-        return ['text' => "D+{$days}", 'days' => abs($days), 'isPast' => true];
+        $absDays = abs($days);
+        return ['text' => "D+{$absDays}", 'days' => $absDays, 'isPast' => true];
     }
 }
 

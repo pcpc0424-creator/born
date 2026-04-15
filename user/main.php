@@ -22,8 +22,8 @@ $dday = calculate_dday($event['start_date']);
 // 최신 공지사항 조회
 $latestNotice = null;
 if ($visibility['announcements']) {
-    $stmt = $db->prepare("SELECT * FROM notices WHERE category = 'notice' ORDER BY created_at DESC LIMIT 1");
-    $stmt->execute();
+    $stmt = $db->prepare("SELECT * FROM notices WHERE category = 'notice' AND event_id = ? ORDER BY created_at DESC LIMIT 1");
+    $stmt->execute([$user['event_id']]);
     $latestNotice = $stmt->fetch();
 }
 
@@ -40,14 +40,14 @@ $bgImage = $backgrounds[array_rand($backgrounds)];
     <title><?= h($event['event_name']) ?> - 본투어 인터내셔날</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css">
-    <link rel="stylesheet" href="/born/assets/css/animations.css">
-    <link rel="stylesheet" href="/born/assets/css/user.css">
-    <link rel="stylesheet" href="/born/assets/css/user-pc.css">
+    <link rel="stylesheet" href="/assets/css/animations.css">
+    <link rel="stylesheet" href="/assets/css/user.css">
+    <link rel="stylesheet" href="/assets/css/user-pc.css">
     <style>
         .main-hero-new {
             position: relative;
             margin: -20px -20px 24px -20px;
-            padding: 40px 24px;
+            padding: 130px 24px 40px;
             background: linear-gradient(135deg, #a8d5e5 0%, #f5b8c2 50%, #ffd6a5 100%);
             border-radius: 0 0 32px 32px;
             color: #2d3748;
@@ -451,7 +451,7 @@ $bgImage = $backgrounds[array_rand($backgrounds)];
 
     <!-- PC 브랜딩 (1400px 이상) -->
     <div class="pc-branding">
-        <h1>BORN TOUR</h1>
+        <h1>(주)본투어인터내셔날</h1>
         <p>여행의 시작부터 끝까지<br>함께하는 든든한 파트너</p>
         <span class="tagline">Special Travel Experience</span>
     </div>
@@ -461,13 +461,13 @@ $bgImage = $backgrounds[array_rand($backgrounds)];
             <div class="phone-screen-inner">
                 <div class="user-layout">
                     <!-- 헤더 -->
-                    <header class="user-header" style="background: transparent; position: absolute; top: 0; left: 0; right: 0; z-index: 10;">
+                    <header class="user-header" id="mainHeader" style="background: transparent; position: absolute; top: 0; left: 0; right: 0; z-index: 10; transition: background 0.3s ease;">
                         <div class="header-logo" style="color: white; display: flex; align-items: center; gap: 8px;">
                             <?php if (!empty($event['client_logo'])): ?>
-                                <img src="/born/uploads/logos/<?= h($event['client_logo']) ?>" alt="" style="height: 24px; max-width: 60px; object-fit: contain; filter: brightness(0) invert(1);">
+                                <img src="/uploads/logos/<?= h($event['client_logo']) ?>" alt="" style="height: 40px; max-width: 120px; object-fit: contain; background: rgba(255,255,255,0.85); border-radius: 6px; padding: 3px 8px;">
                                 <span style="color: rgba(255,255,255,0.5);">×</span>
                             <?php endif; ?>
-                            <span style="font-weight: 700;">BORN TOUR</span>
+                            <span style="font-weight: 700;">(주)본투어인터내셔날</span>
                         </div>
                         <div class="header-menu" onclick="BornUser.openSidebar()" style="color: white;">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -514,7 +514,7 @@ $bgImage = $backgrounds[array_rand($backgrounds)];
 
                         <!-- 최신 공지사항 배너 -->
                         <?php if ($latestNotice): ?>
-                            <a href="/born/user/announcements.php" class="notice-banner page-enter" style="animation-delay: 0.05s;">
+                            <a href="/user/announcements.php" class="notice-banner page-enter" style="animation-delay: 0.05s;">
                                 <div class="notice-banner-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -534,7 +534,7 @@ $bgImage = $backgrounds[array_rand($backgrounds)];
                         <!-- 퀵 메뉴 -->
                         <div class="quick-menu page-enter" style="animation-delay: 0.1s;">
                             <?php if ($visibility['flight']): ?>
-                                <a href="/born/user/flight.php" class="quick-menu-item">
+                                <a href="/user/flight.php" class="quick-menu-item">
                                     <div class="quick-menu-icon">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
@@ -545,7 +545,7 @@ $bgImage = $backgrounds[array_rand($backgrounds)];
                             <?php endif; ?>
 
                             <?php if ($visibility['meeting']): ?>
-                                <a href="/born/user/meeting.php" class="quick-menu-item">
+                                <a href="/user/meeting.php" class="quick-menu-item">
                                     <div class="quick-menu-icon orange">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
@@ -556,8 +556,8 @@ $bgImage = $backgrounds[array_rand($backgrounds)];
                                 </a>
                             <?php endif; ?>
 
-                            <?php if ($visibility['schedule'] && $event['schedule_url']): ?>
-                                <a href="<?= h($event['schedule_url']) ?>" target="_blank" class="quick-menu-item">
+                            <?php if ($visibility['schedule']): ?>
+                                <a href="/user/schedule.php" class="quick-menu-item">
                                     <div class="quick-menu-icon green">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <rect x="3" y="4" width="18" height="18" rx="2"/>
@@ -570,33 +570,19 @@ $bgImage = $backgrounds[array_rand($backgrounds)];
                                 </a>
                             <?php endif; ?>
 
-                            <?php if ($visibility['reservation']): ?>
-                                <a href="/born/user/reservation.php" class="quick-menu-item">
+                            <?php if ($visibility['hotel']): ?>
+                                <a href="/user/hotel.php" class="quick-menu-item">
                                     <div class="quick-menu-icon purple">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                            <polyline points="14 2 14 8 20 8"/>
-                                            <line x1="16" y1="13" x2="8" y2="13"/>
-                                            <line x1="16" y1="17" x2="8" y2="17"/>
+                                            <path d="M3 21h18M3 7v14M21 7v14M6 11h4v4H6zM14 11h4v4h-4zM6 3h12v4H6z"/>
                                         </svg>
                                     </div>
-                                    <span>예약확인</span>
+                                    <span>호텔정보</span>
                                 </a>
                             <?php endif; ?>
-                        </div>
 
-                        <!-- 여행 준비 섹션 -->
-                        <div class="section-title page-enter" style="animation-delay: 0.15s;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                <polyline points="22 4 12 14.01 9 11.01"/>
-                            </svg>
-                            여행 준비
-                        </div>
-
-                        <div class="quick-menu page-enter" style="animation-delay: 0.2s; grid-template-columns: repeat(3, 1fr);">
                             <?php if ($visibility['passport_upload']): ?>
-                                <a href="/born/user/passport-upload.php" class="quick-menu-item">
+                                <a href="/user/passport-upload.php" class="quick-menu-item">
                                     <div class="quick-menu-icon accent">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <rect x="3" y="4" width="18" height="16" rx="2"/>
@@ -609,7 +595,7 @@ $bgImage = $backgrounds[array_rand($backgrounds)];
                             <?php endif; ?>
 
                             <?php if ($visibility['optional_tour']): ?>
-                                <a href="/born/user/optional-tour.php" class="quick-menu-item">
+                                <a href="/user/optional-tour.php" class="quick-menu-item">
                                     <div class="quick-menu-icon green">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <circle cx="12" cy="12" r="10"/>
@@ -620,8 +606,22 @@ $bgImage = $backgrounds[array_rand($backgrounds)];
                                 </a>
                             <?php endif; ?>
 
+                            <?php if ($visibility['reservation']): ?>
+                                <a href="/user/reservation.php" class="quick-menu-item">
+                                    <div class="quick-menu-icon purple">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                            <line x1="16" y1="13" x2="8" y2="13"/>
+                                            <line x1="16" y1="17" x2="8" y2="17"/>
+                                        </svg>
+                                    </div>
+                                    <span>예약상세</span>
+                                </a>
+                            <?php endif; ?>
+
                             <?php if ($visibility['survey']): ?>
-                                <a href="/born/user/survey.php" class="quick-menu-item">
+                                <a href="/user/survey.php" class="quick-menu-item">
                                     <div class="quick-menu-icon orange">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -652,7 +652,7 @@ $bgImage = $backgrounds[array_rand($backgrounds)];
                                 <div class="card-body">
                                     <?= nl2br(h(mb_substr($event['travel_notice'], 0, 100))) ?>...
                                 </div>
-                                <a href="/born/user/notice.php" class="card-link">
+                                <a href="/user/notice.php" class="card-link">
                                     자세히 보기
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polyline points="9 18 15 12 9 6"/>
@@ -663,21 +663,21 @@ $bgImage = $backgrounds[array_rand($backgrounds)];
 
                         <!-- 하단 네비게이션 -->
                         <div class="bottom-nav page-enter" style="animation-delay: 0.3s;">
-                            <a href="/born/user/main.php" class="bottom-nav-item active">
+                            <a href="/user/main.php" class="bottom-nav-item active">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                                     <polyline points="9 22 9 12 15 12 15 22"/>
                                 </svg>
                                 홈
                             </a>
-                            <a href="/born/user/announcements.php" class="bottom-nav-item">
+                            <a href="/user/announcements.php" class="bottom-nav-item">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                                     <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                                 </svg>
                                 공지
                             </a>
-                            <a href="/born/user/faq.php" class="bottom-nav-item">
+                            <a href="/user/faq.php" class="bottom-nav-item">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <circle cx="12" cy="12" r="10"/>
                                     <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
@@ -697,13 +697,12 @@ $bgImage = $backgrounds[array_rand($backgrounds)];
 
                         <!-- 푸터 (사업자 정보) -->
                         <div class="main-footer page-enter" style="animation-delay: 0.35s;">
-                            <div class="main-footer-logo">BORN TOUR INTERNATIONAL</div>
+                            <div class="main-footer-logo">BORNTOUR INTERNATIONAL</div>
                             <div class="main-footer-info">
-                                <p><?= COMPANY_NAME ?></p>
-                                <p>대표: 이은정 | 사업자등록번호: 123-45-67890</p>
-                                <p>주소: 서울특별시 중구 을지로 100</p>
-                                <p>TEL: <?= COMPANY_PHONE ?> | FAX: 02-1234-5679</p>
-                                <p>통신판매업신고: 제2024-서울중구-0000호</p>
+                                <p>(주)본투어인터내셔날</p>
+                                <p>대표: 박범록, 박지은 | 사업자등록번호: 779-88-00098</p>
+                                <p>주소: 서울특별시 성동구 연무장길 76, 810호</p>
+                                <p>TEL: <?= COMPANY_PHONE ?></p>
                             </div>
                             <div class="main-footer-copyright">
                                 © <?= date('Y') ?> <?= COMPANY_NAME ?>. All rights reserved.
@@ -718,6 +717,29 @@ $bgImage = $backgrounds[array_rand($backgrounds)];
         </div>
     </div>
 
-    <script src="/born/assets/js/user.js"></script>
+    <script src="/assets/js/user.js"></script>
+    <script>
+    (function() {
+        const header = document.getElementById('mainHeader');
+        const phoneInner = document.querySelector('.phone-screen-inner');
+
+        function onScroll() {
+            const scrollY = (phoneInner && phoneInner.scrollHeight > phoneInner.clientHeight)
+                ? phoneInner.scrollTop : window.scrollY;
+            if (scrollY > 30) {
+                header.style.background = 'rgba(0, 0, 0, 0.35)';
+                header.style.backdropFilter = 'blur(8px)';
+                header.style.webkitBackdropFilter = 'blur(8px)';
+            } else {
+                header.style.background = 'transparent';
+                header.style.backdropFilter = 'none';
+                header.style.webkitBackdropFilter = 'none';
+            }
+        }
+
+        if (phoneInner) phoneInner.addEventListener('scroll', onScroll);
+        window.addEventListener('scroll', onScroll);
+    })();
+    </script>
 </body>
 </html>

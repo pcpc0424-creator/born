@@ -5,11 +5,11 @@
 
 // 경로 설정
 define('BASE_PATH', '/var/www/born');
-define('BASE_URL', '/born');
-define('ADMIN_URL', '/born/admin/');
-define('USER_URL', '/born/user/');
-define('API_URL', '/born/api/');
-define('ASSETS_URL', '/born/assets/');
+define('BASE_URL', '');
+define('ADMIN_URL', '/admin/');
+define('USER_URL', '/user/');
+define('API_URL', '/api/');
+define('ASSETS_URL', '/assets/');
 
 // 업로드 경로
 define('UPLOAD_PATH', BASE_PATH . '/uploads');
@@ -22,7 +22,7 @@ define('UPLOAD_TEMP', UPLOAD_PATH . '/temp');
 define('MAX_FILE_SIZE', 10 * 1024 * 1024); // 10MB
 define('ALLOWED_IMAGE_TYPES', ['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
 define('ALLOWED_IMAGE_EXTENSIONS', ['jpg', 'jpeg', 'png', 'gif', 'webp']);
-define('ALLOWED_DOCUMENT_TYPES', ['application/pdf', 'image/jpeg', 'image/png']);
+define('ALLOWED_DOCUMENT_TYPES', ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 
 // 세션 설정
 define('SESSION_LIFETIME', 7200); // 2시간
@@ -74,7 +74,7 @@ define('NOTICE_CATEGORY_LABELS', [
 
 // 본투어 연락처 정보
 define('COMPANY_NAME', '본투어 인터내셔날');
-define('COMPANY_PHONE', '02-1234-5678');
+define('COMPANY_PHONE', '02-539-4666');
 define('COMPANY_KAKAO', 'borntour');
 define('COMPANY_EMAIL', 'info@borntour.co.kr');
 define('KAKAO_CHANNEL_URL', 'https://pf.kakao.com/_borntour'); // 카카오톡 채널 URL

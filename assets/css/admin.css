@@ -142,13 +142,14 @@ img {
 }
 
 .sidebar-logo img {
-    height: 36px;
+    height: 28px;
 }
 
 .sidebar-logo h1 {
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--white);
+    white-space: nowrap;
 }
 
 .sidebar-nav {
